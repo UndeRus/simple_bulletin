@@ -38,7 +38,6 @@ pub async fn main_board(
         };
     let total_pages = (total_count as f64 / per_page as f64).ceil() as i64;
 
-
     let logged_in = auth_session.user.is_some();
     let template = MainPageTemplate {
         adverts,

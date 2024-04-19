@@ -1,13 +1,26 @@
+use clap::Parser;
 use password_auth::generate_hash;
 
 mod auth_models;
 mod db;
 mod models;
 
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long)]
+    username: String,
+}
+
 #[tokio::main]
 async fn main() {
-    println!("Create new admin");
-    create_new_admin("admin", "123").await;
+    let cli = Cli::parse();
+
+    let admin_username = cli.username;
+    let password =
+        rpassword::prompt_password("Admin password: ").expect("You must enter admin password");
+    create_new_admin(&admin_username, &password).await;
+    println!("Admin user {} created", admin_username);
 }
 
 async fn create_new_admin(username: &str, password: &str) {

@@ -48,7 +48,7 @@ pub async fn login_with_password(
 #[derive(Template, Default)]
 #[template(path = "login.html")]
 pub struct LoginFormTemplate {
-    logged_in: bool
+    logged_in: bool,
 }
 
 pub async fn login_form() -> impl IntoResponse {

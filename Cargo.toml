@@ -30,11 +30,13 @@ async-trait = "0.1.79"
 axum = "0.7.4"
 axum-login = "0.15.0"
 axum_csrf = { version = "^0.9.0", features = ["layer"] }
+clap = { version = "4.5.4", features = ["derive"] }
 data-encoding = "2.5.0"
 env_logger = "0.11.3"
 log = "0.4.21"
 password-auth = "1.0.0"
 ring = "0.17.8"
+rpassword = "7.3.1"
 serde = { version = "1.0.197", features = ["derive"] }
 sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio"] }
 thiserror = "1.0.58"

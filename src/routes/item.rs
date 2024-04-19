@@ -6,7 +6,7 @@ use axum_csrf::CsrfToken;
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::{AuthBackend}, db, models::Advert};
+use crate::{auth::AuthBackend, db, models::Advert};
 
 
 #[derive(Template)]
@@ -16,7 +16,7 @@ pub struct ItemPageTemplate {
 }
 
 pub async fn item_page(auth_session: AuthSession<AuthBackend>, Path(item_id): Path<i64>) -> impl IntoResponse {
-    let advert = if let Ok(advert)  = db::get_advert_by_id(auth_session.user.map(|u|u.id), item_id, true).await {
+    let advert = if let Ok(advert)  = db::get_advert_by_id(auth_session.user.map(|u|u.id), item_id).await {
         advert
     } else {
         return "Not found".into_response();
@@ -62,7 +62,11 @@ pub struct ItemNewFormTemplate<'a> {
 }
 
 pub async fn item_new_form(token: CsrfToken) -> impl IntoResponse {
-    let csrf_token = token.authenticity_token().unwrap();
+    let csrf_token = if let Ok(csrf_token) = token.authenticity_token() {
+        csrf_token
+    } else {
+        return "Failed to get csrf token".into_response();
+    };
     let template = ItemNewFormTemplate {
         csrf_token: &csrf_token,
     };

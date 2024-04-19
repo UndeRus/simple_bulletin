@@ -16,7 +16,19 @@
                 <td><a href="/item/{{advert.id}}">#</a></td>
                 <td>{{advert.title}}</td>
                 <td>{{advert.content}}</td>
-                <td><input type="checkbox" disabled {% if advert.published %}checked{% endif %} /></td>
+                <td>
+                    <form method="post" action="/mod?advert_page={{advert_page}}&user_page={{user_page}}">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+                        <input type="hidden" name="id" value="{{advert.id}}" />
+                        {% if advert.published %}
+                        <input type="hidden" name="action" value="ua" />
+                        <button>Unpublish</button>
+                        {% else %}
+                        <input type="hidden" name="action" value="pa" />
+                        <button>Publish</button>
+                        {% endif %}
+                    </form></td>
+                </td>
             </tr>
             {% endfor %}
         </table>
@@ -51,7 +63,19 @@
             <tr>
                 <td>{{user.id}}</td>
                 <td>{{user.username}}</td>
-                <td><input type="checkbox" disabled {% if user.active %}checked{% endif %} /></td>
+                <td>
+                    <form method="post" action="/mod?advert_page={{advert_page}}&user_page={{user_page}}">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+                        <input type="hidden" name="id" value="{{user.id}}" />
+                        {% if user.active %}
+                        <input type="hidden" name="action" value="du" />
+                        <button>Deactivate</button>
+                        {% else %}
+                        <input type="hidden" name="action" value="au" />
+                        <button>Activate</button>
+                        {% endif %}
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </table>

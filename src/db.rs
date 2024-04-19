@@ -95,17 +95,23 @@ pub async fn create_new_advert(user_id: i64, title: &str, content: &str) -> Resu
 pub async fn get_advert_by_id(
     user_id: Option<i64>,
     id: i64,
-    published: bool,
 ) -> Result<Advert, ()> {
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
-    let result: Option<Advert> =
-        sqlx::query_as("SELECT * FROM adverts WHERE id = ? AND published = ?")
+    let result: Option<Advert> = if let Some(user_id) = user_id {
+        sqlx::query_as("SELECT a.id, a.title, a.content, a.published FROM adverts a JOIN users_adverts ua ON a.id = ua.advert_id WHERE a.id = ? AND (a.published = true OR ua.user_id = ?)")
             .bind(id)
-            .bind(published)
-            .fetch_optional(&db)
-            .await
-            .map_err(|_| ())?;
+            .bind(user_id)
+    } else {
+        sqlx::query_as("SELECT * FROM adverts WHERE id = ? AND published = true")
+            .bind(id) 
+    }     
+           .fetch_optional(&db)
+.await
+    .map_err(|e| {
+        println!("Failed to get item {}", e);
+        ()})?  ;
+
+    
     result.ok_or(())
 }
 
@@ -168,4 +174,35 @@ pub async fn get_mod_page(
         ()})?;
 
     Ok(((advert_result, adverts_total_count), (users_result, users_total_count)))
+}
+
+
+pub async fn toggle_advert_publish(advert_id: i64, published: bool) -> Result<(), ()> {
+    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+
+
+    sqlx::query("UPDATE adverts SET published = ? WHERE id = ?")
+    .bind(published)
+    .bind(advert_id)
+    .execute(&db)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to update advert publish: {}", e);
+        ()})?;
+    Ok(())
+}
+
+pub async fn toggle_user_active(user_id: i64, active: bool) -> Result<(), ()> {
+    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+
+
+    sqlx::query("UPDATE users SET active = ? WHERE id = ?")
+    .bind(active)
+    .bind(user_id)
+    .execute(&db)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to update users active: {}", e);
+        ()})?;
+    Ok(())
 }

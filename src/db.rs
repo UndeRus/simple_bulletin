@@ -91,9 +91,20 @@ pub async fn create_new_advert(user_id: i64, title: &str, content: &str) -> Resu
     Ok(new_advert_id)
 }
 
-pub async fn get_advert_by_id(id: i64) -> Result<Advert, ()> {
+pub async fn get_advert_by_id(id: i64, published: bool) -> Result<Advert, ()> {
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
-    let result: Option<Advert> = sqlx::query_as("SELECT * FROM adverts WHERE id = ?").bind(id).fetch_optional(& db).await.map_err(|_|())?;
+    let result: Option<Advert> = sqlx::query_as("SELECT * FROM adverts WHERE id = ? AND published = ?").bind(id).bind(published).fetch_optional(& db).await.map_err(|_|())?;
     result.ok_or(())
+}
+
+pub async fn get_main_page(before_id: Option<i64>) -> Result<Vec<Advert>, ()> {
+    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+
+    let result: Vec<Advert> = if let Some(before_id) = before_id {
+        sqlx::query_as("SELECT * FROM adverts WHERE id < ? AND published = true ORDER BY ID DESC LIMIT 10").bind(before_id).fetch_all(&db)
+    } else {
+        sqlx::query_as("SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT 10").fetch_all(&db)
+    }.await.map_err(|_|())?;
+    Ok(result)
 }

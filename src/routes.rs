@@ -6,9 +6,9 @@ use axum::{
 };
 use axum_csrf::CsrfToken;
 use axum_login::AuthSession;
-use serde::{de::IntoDeserializer, Deserialize};
+use serde::Deserialize;
 
-use crate::{auth::{self, AuthBackend, Credentials}, db, models::Advert};
+use crate::{auth::{AuthBackend, Credentials}, db, models::Advert};
 
 #[derive(Deserialize)]
 pub struct NextUrl {
@@ -59,8 +59,29 @@ pub async fn logout(mut auth_session: AuthSession<AuthBackend>) -> impl IntoResp
     Redirect::to("/")
 }
 
-pub async fn main_board() -> impl IntoResponse {
-    "Main page"
+#[derive(Template)]
+#[template(path = "main.html")]
+pub struct MainPageTemplate {
+    adverts: Vec<Advert>,
+}
+
+
+#[derive(Deserialize)]
+pub struct MainPageParams {
+    pub before_id: Option<i64>
+}
+
+pub async fn main_board(Query(params): Query<MainPageParams>) -> impl IntoResponse {
+    let adverts = if let Ok(adverts) = db::get_main_page(params.before_id).await {
+        adverts
+    } else {
+        return "Main page error".into_response();
+    };
+    let template = MainPageTemplate {
+        adverts
+    };
+    let reply_html = template.render().unwrap();
+    (StatusCode::OK, Html(reply_html).into_response()).into_response()
 }
 
 
@@ -71,10 +92,8 @@ pub struct ItemPageTemplate {
     advert: Advert,
 }
 
-
-
 pub async fn item_page(Path(item_id): Path<i64>) -> impl IntoResponse {
-    let advert = if let Ok(advert)  = db::get_advert_by_id(item_id).await {
+    let advert = if let Ok(advert)  = db::get_advert_by_id(item_id, true).await {
         advert
     } else {
         return "Not found".into_response();

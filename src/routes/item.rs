@@ -24,11 +24,11 @@ pub struct ItemPageTemplate {
 
 #[derive(Deserialize)]
 pub struct ItemEditForm {
-    csrf_token: String
+    csrf_token: String,
 }
 
 pub async fn item_page_edit(
-    token: CsrfToken,    
+    token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Path(advert_id): Path<i64>,
     Form(form): Form<ItemEditForm>,
@@ -37,7 +37,7 @@ pub async fn item_page_edit(
         return "Failed to get csrf token".into_response();
     };
 
-    let user_id = if let Some(user_id) = auth_session.user.map(|u|u.id) {
+    let user_id = if let Some(user_id) = auth_session.user.map(|u| u.id) {
         user_id
     } else {
         return "No user found".into_response();
@@ -52,7 +52,7 @@ pub async fn item_page_edit(
                 return "Failed to unpublish advert".into_response();
             }
         } else {
-            return "You tried edit someone else advert".into_response();    
+            return "You tried edit someone else advert".into_response();
         }
     } else {
         return "You tried edit someone else advert".into_response();
@@ -71,7 +71,7 @@ pub async fn item_page(
     };
 
     let user = auth_session.user.clone();
-    let user_id = user.clone().map(|u|u.id);
+    let user_id = user.clone().map(|u| u.id);
     let is_admin = if let Some(user) = user {
         auth_session
             .backend
@@ -86,18 +86,17 @@ pub async fn item_page(
     } else {
         false
     };
-    let (advert, own_advert) = if let Ok(advert) =
-        db::get_advert_by_id(user_id, item_id, is_admin).await
-    {
-        advert
-    } else {
-        return "Not found".into_response();
-    };
+    let (advert, own_advert) =
+        if let Ok(advert) = db::get_advert_by_id(user_id, item_id, is_admin).await {
+            advert
+        } else {
+            return "Not found".into_response();
+        };
 
     let template = ItemPageTemplate {
         csrf_token,
-         advert ,
-         own_advert,
+        advert,
+        own_advert,
     };
     let reply_html = template.render().unwrap();
     (token, Html(reply_html).into_response()).into_response()

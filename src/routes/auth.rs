@@ -1,17 +1,22 @@
 use askama::Template;
 use axum::{
-    extract::{Query}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form
+    extract::Query,
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect},
+    Form,
 };
 use axum_csrf::CsrfToken;
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::{AuthBackend, Credentials}, db};
-
+use crate::{
+    auth::{AuthBackend, Credentials},
+    db,
+};
 
 #[derive(Deserialize)]
 pub struct NextUrl {
-    pub next: Option<String>
+    pub next: Option<String>,
 }
 
 pub async fn login_with_password(
@@ -42,13 +47,10 @@ pub async fn login_with_password(
 
 #[derive(Template)]
 #[template(path = "login.html")]
-pub struct LoginFormTemplate {
-
-}
+pub struct LoginFormTemplate {}
 
 pub async fn login_form() -> impl IntoResponse {
-    let template = LoginFormTemplate {
-    };
+    let template = LoginFormTemplate {};
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response())
 }
@@ -58,14 +60,13 @@ pub async fn logout(mut auth_session: AuthSession<AuthBackend>) -> impl IntoResp
     Redirect::to("/")
 }
 
-
 pub async fn register(token: CsrfToken, Form(form): Form<RegisterForm>) -> impl IntoResponse {
     if let Err(_e) = token.verify(&form.csrf_token) {
         "Error".into_response()
     } else {
         // Token is valid, register
         if let Ok(_) = db::create_new_user(&form.username, &form.password).await {
-            Redirect::to("/").into_response()            
+            Redirect::to("/").into_response()
         } else {
             "Failed to register".into_response()
         }
@@ -77,7 +78,6 @@ pub async fn register(token: CsrfToken, Form(form): Form<RegisterForm>) -> impl 
 pub struct RegisterFormTemplate<'a> {
     csrf_token: &'a str,
 }
-
 
 #[derive(Deserialize)]
 pub struct RegisterForm {

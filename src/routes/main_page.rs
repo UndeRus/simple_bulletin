@@ -25,11 +25,12 @@ pub async fn main_board(Query(params): Query<MainPageParams>) -> impl IntoRespon
     let per_page = MAIN_PAGE_LIMIT;
     let offset = (page - 1) * per_page;
 
-    let (adverts, total_count) = if let Ok(adverts) = db::get_main_page(MAIN_PAGE_LIMIT, offset).await {
-        adverts
-    } else {
-        return "Main page error".into_response();
-    };
+    let (adverts, total_count) =
+        if let Ok(adverts) = db::get_main_page(MAIN_PAGE_LIMIT, offset).await {
+            adverts
+        } else {
+            return "Main page error".into_response();
+        };
     let total_pages = (total_count as f64 / per_page as f64).ceil() as i64;
 
     let template = MainPageTemplate {

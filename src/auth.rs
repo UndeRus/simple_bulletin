@@ -9,7 +9,6 @@ use tokio::task;
 
 use crate::auth_models::User;
 
-
 #[derive(Clone)]
 pub struct AuthBackend {
     pub db: SqlitePool,
@@ -63,15 +62,14 @@ impl AuthnBackend for AuthBackend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let user: Option<Self::User> =
-            sqlx::query_as("select * from users where username = ? ")
-                .bind(creds.username)
-                .fetch_optional(&self.db)
-                .await
-                .map_err(|e| {
-                    println!("SQL Error {}", e);
-                    AuthError::SQLError(e)
-                })?;
+        let user: Option<Self::User> = sqlx::query_as("select * from users where username = ? ")
+            .bind(creds.username)
+            .fetch_optional(&self.db)
+            .await
+            .map_err(|e| {
+                println!("SQL Error {}", e);
+                AuthError::SQLError(e)
+            })?;
 
         task::spawn_blocking(move || {
             // We're using password-based authentication--this works by comparing our form
@@ -102,7 +100,10 @@ impl AuthnBackend for AuthBackend {
 impl AuthzBackend for AuthBackend {
     type Permission = AuthPermission;
 
-    async fn get_group_permissions(&self, user: &Self::User) -> Result<HashSet<Self::Permission>, Self::Error> {
+    async fn get_group_permissions(
+        &self,
+        user: &Self::User,
+    ) -> Result<HashSet<Self::Permission>, Self::Error> {
         let permissions: Vec<Self::Permission> = sqlx::query_as(
             r#"
             select distinct permissions.name
@@ -112,7 +113,11 @@ impl AuthzBackend for AuthBackend {
             join permissions on groups_permissions.permission_id = permissions.id
             where users.id = ? AND users.active = TRUE
             "#,
-        ).bind(user.id).fetch_all(&self.db).await.map_err(|e|{
+        )
+        .bind(user.id)
+        .fetch_all(&self.db)
+        .await
+        .map_err(|e| {
             dbg!(&e);
             AuthError::SQLError(e)
         })?;

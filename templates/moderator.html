@@ -20,12 +20,26 @@
             </tr>
             {% endfor %}
         </table>
-        {% if !first_ad_page %}
-        <a href="/mod?after_id_ad={{users.first().unwrap().id}}">Prev</a>
-        {% endif %}
-        {% if !last_ad_page %}
-        <a href="/mod?before_id_ad={{users.last().unwrap().id}}">Next</a>
-        {% endif %}
+        <div>
+            {% if advert_page > 1 %}
+                <a href="?advert_page=1&user_page={{ user_page }}">First</a>
+                <a href="?advert_page={{ advert_page - 1 }}&user_page={{ user_page }}">Previous</a>
+            {% endif %}
+    
+            {% for p in 1..=total_advert_pages %}
+                {% if p == advert_page %}
+                    <span>{{ p }}</span>
+                {% else %}
+                    <a href="?advert_page={{ p }}&user_page={{ user_page }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if advert_page < total_advert_pages %}
+                <a href="?advert_page={{ advert_page + 1 }}&user_page={{ user_page }}">Next</a>
+                <a href="?advert_page={{ total_advert_pages }}&user_page={{ user_page }}">Last</a>
+            {% endif %}
+        </div>
+    
         <h2>Users</h2>
         <table>
             <tr>
@@ -41,11 +55,25 @@
             </tr>
             {% endfor %}
         </table>
-        {% if !first_user_page %}
-        <a href="/mod?after_id_user={{adverts.first().unwrap().id}}">Prev</a>
-        {% endif %}
-        {% if !last_user_page %}
-        <a href="/mod?before_id_user={{adverts.last().unwrap().id}}">Next</a>
-        {% endif %}
+       
+        <div>
+            {% if user_page > 1 %}
+                <a href="?user_page=1&advert_page={{ advert_page }}">First</a>
+                <a href="?user_page={{ user_page - 1 }}&advert_page={{ advert_page }}">Previous</a>
+            {% endif %}
+    
+            {% for p in 1..=total_user_pages %}
+                {% if p == user_page %}
+                    <span>{{ p }}</span>
+                {% else %}
+                    <a href="?user_page={{ p }}&advert_page={{ advert_page }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if user_page < total_user_pages %}
+                <a href="?user_page={{ user_page + 1 }}&advert_page={{ advert_page }}">Next</a>
+                <a href="?user_page={{ total_user_pages }}&advert_page={{ advert_page }}">Last</a>
+            {% endif %}
+        </div>
     </body>
 </html>

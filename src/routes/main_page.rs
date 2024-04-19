@@ -11,29 +11,31 @@ const MAIN_PAGE_LIMIT: i64 = 10;
 #[template(path = "main.html")]
 pub struct MainPageTemplate {
     adverts: Vec<Advert>,
-    first_page: bool,
-    last_page: bool,
+    total_pages: i64,
+    page: i64,
 }
 
 #[derive(Deserialize)]
 pub struct MainPageParams {
-    pub before_id: Option<i64>,
-    pub after_id: Option<i64>,
+    page: Option<i64>,
 }
 
-//TODO: rework pagination
 pub async fn main_board(Query(params): Query<MainPageParams>) -> impl IntoResponse {
-    let adverts = if let Ok(adverts) = db::get_main_page(MAIN_PAGE_LIMIT, params.before_id, params.after_id).await {
+    let page = params.page.unwrap_or(1);
+    let per_page = MAIN_PAGE_LIMIT;
+    let offset = (page - 1) * per_page;
+
+    let (adverts, total_count) = if let Ok(adverts) = db::get_main_page(MAIN_PAGE_LIMIT, offset).await {
         adverts
     } else {
         return "Main page error".into_response();
     };
+    let total_pages = (total_count as f64 / per_page as f64).ceil() as i64;
 
-    let adverts_len = adverts.len();
     let template = MainPageTemplate {
         adverts,
-        first_page: params.before_id.is_none(),
-        last_page: adverts_len < MAIN_PAGE_LIMIT as usize,
+        total_pages,
+        page,
     };
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response()).into_response()

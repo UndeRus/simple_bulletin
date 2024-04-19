@@ -17,11 +17,26 @@
             </tr>
             {% endfor %}
         </table>
-        {% if !first_page %}
-        <a href="/?after_id={{adverts.first().unwrap().id}}">Prev</a>
-        {% endif %}
-        {% if !last_page %}
-        <a href="/?before_id={{adverts.last().unwrap().id}}">Next</a>
-        {% endif %}
+       
+
+        <div>
+            {% if page > 1 %}
+                <a href="?page=1">First</a>
+                <a href="?page={{ page - 1 }}">Previous</a>
+            {% endif %}
+    
+            {% for p in 1..=total_pages %}
+                {% if p == page %}
+                    <span>{{ p }}</span>
+                {% else %}
+                    <a href="?page={{ p }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if page < total_pages %}
+                <a href="?page={{ page + 1 }}">Next</a>
+                <a href="?page={{ total_pages }}">Last</a>
+            {% endif %}
+        </div>
     </body>
 </html>

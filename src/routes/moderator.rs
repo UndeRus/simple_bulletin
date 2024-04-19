@@ -8,34 +8,44 @@ use crate::{auth_models::User, db, models::Advert};
 const ADVERTS_LIMIT: i64 = 10;
 const USERS_LIMIT: i64 = 10;
 
+
 #[derive(Deserialize)]
 pub struct ModPageParams {
-    pub before_id_ad: Option<i64>,
-    pub after_id_ad: Option<i64>,
-    pub before_id_user: Option<i64>,
-    pub after_id_user: Option<i64>,
+    user_page: Option<i64>,
+    advert_page: Option<i64>
 }
+
+#[derive(Debug, Deserialize)]
+pub struct PaginationParams {
+    page: Option<i32>,
+    per_page: Option<i32>,
+}
+
 
 #[derive(Template)]
 #[template(path = "moderator.html")]
 struct ModeratorPageTemplate {
     adverts: Vec<Advert>,
-    first_ad_page: bool,
-    last_ad_page: bool,
     users: Vec<User>,
-    first_user_page: bool,
-    last_user_page: bool,
+
+    advert_page: i64,
+    total_advert_pages: i64,
+    user_page: i64,
+    total_user_pages: i64,
 }
 
-//TODO: rework pagination
 pub async fn mod_page(Query(params): Query<ModPageParams>) -> impl IntoResponse {
-    let (adverts, users) = if let Ok((adverts, users)) = db::get_mod_page(
+    let advert_page = params.advert_page.unwrap_or(1);
+    let user_page = params.user_page.unwrap_or(1);
+    let adverts_per_page = ADVERTS_LIMIT;
+    let users_per_page = USERS_LIMIT;
+    let adverts_offset = (advert_page - 1) * adverts_per_page;
+    let users_offset = (user_page - 1) * users_per_page;
+    let ((adverts, adverts_total_count), (users, users_total_count)) = if let Ok((adverts, users)) = db::get_mod_page(
+        adverts_offset,
         ADVERTS_LIMIT,
-        params.before_id_ad,
-        params.after_id_ad,
+        users_offset,
         USERS_LIMIT,
-        params.before_id_user,
-        params.after_id_user,
     )
     .await
     {
@@ -44,16 +54,17 @@ pub async fn mod_page(Query(params): Query<ModPageParams>) -> impl IntoResponse 
         return "Failed to load mod page info".into_response();
     };
 
-    let adverts_len = adverts.len();
-    let users_len = users.len();
+
+    let total_advert_pages = (adverts_total_count as f64 / adverts_per_page as f64).ceil() as i64;
+    let total_user_pages = (users_total_count as f64 / users_per_page as f64).ceil() as i64;
 
     let template = ModeratorPageTemplate {
         adverts,
-        first_ad_page: params.before_id_ad.is_none(),
-        last_ad_page: adverts_len < ADVERTS_LIMIT as usize,
         users,
-        first_user_page: params.before_id_user.is_none(),
-        last_user_page: users_len < USERS_LIMIT as usize,
+        advert_page,
+        total_advert_pages,
+        user_page,
+        total_user_pages,
     };
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response()).into_response()

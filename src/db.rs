@@ -109,76 +109,63 @@ pub async fn get_advert_by_id(
     result.ok_or(())
 }
 
-//TODO: rework pagination
 pub async fn get_main_page(
     limit: i64,
-    before_id: Option<i64>,
-    after_id: Option<i64>,
-) -> Result<Vec<Advert>, ()> {
+    offset: i64,
+) -> Result<(Vec<Advert>, i64), ()> {
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
-    let result: Vec<Advert> = if let Some(before_id) = before_id {
-        sqlx::query_as(
-            "SELECT * FROM adverts WHERE id < ? AND published = true ORDER BY ID DESC LIMIT ?",
-        )
-        .bind(before_id)
-        .bind(limit)
-    } else if let Some(after_id) = after_id {
-        sqlx::query_as(
-            "SELECT * FROM adverts WHERE id > ? AND published = true ORDER BY ID DESC LIMIT ?",
-        )
-        .bind(after_id)
-        .bind(limit)
-    } else {
-        sqlx::query_as("SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT ?")
+    let result: Vec<Advert> = 
+        sqlx::query_as("SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT ? OFFSET ?")
             .bind(limit)
-    }
+            .bind(offset)
     .fetch_all(&db)
     .await
+    .map_err(|e| {
+        println!("Failed to get adverts: {}", e);
+        ()
+    })?;
+
+    let total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM adverts WHERE published = true")
+    .fetch_one(&db)
+    .await
     .map_err(|_| ())?;
-    Ok(result)
+    Ok((result, total_count))
 }
 
-//TODO: rework pagination
 pub async fn get_mod_page(
+    adverts_offset: i64,
     adverts_limit: i64,
-    before_ad_id: Option<i64>,
-    after_ad_id: Option<i64>,
+    users_offset: i64,
     users_limit: i64,
-    before_user_id: Option<i64>,
-    after_user_id: Option<i64>,
-) -> Result<(Vec<Advert>, Vec<User>), ()> {
+) -> Result<((Vec<Advert>, i64), (Vec<User>, i64)), ()> {
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
-    let advert_result: Vec<Advert> = if let Some(before_ad_id) = before_ad_id {
-        sqlx::query_as("SELECT * FROM adverts WHERE id < ? ORDER BY ID DESC LIMIT ?")
-            .bind(before_ad_id)
-            .bind(adverts_limit)
-    } else if let Some(after_ad_id) = after_ad_id {
-        sqlx::query_as("SELECT * FROM adverts WHERE id > ? ORDER BY ID DESC LIMIT ?")
-            .bind(after_ad_id)
-            .bind(adverts_limit)
-    } else {
-        sqlx::query_as("SELECT * FROM adverts ORDER BY ID DESC LIMIT ?").bind(adverts_limit)
-    }
+    let advert_result: Vec<Advert> = sqlx::query_as("SELECT * FROM adverts ORDER BY ID DESC LIMIT ? OFFSET ?").bind(adverts_limit)
+    .bind(adverts_offset)
     .fetch_all(&db)
     .await
     .map_err(|_| ())?;
 
-    let users_result: Vec<User> = if let Some(before_user_id) = before_user_id {
-        sqlx::query_as("SELECT * FROM users WHERE id < ? ORDER BY ID DESC LIMIT ?")
-            .bind(before_user_id)
-            .bind(users_limit)
-    } else if let Some(after_user_id) = after_user_id {
-        sqlx::query_as("SELECT * FROM users WHERE id > ? ORDER BY ID DESC LIMIT ?")
-            .bind(after_user_id)
-            .bind(users_limit)
-    } else {
-        sqlx::query_as("SELECT * FROM users ORDER BY ID DESC LIMIT ?").bind(users_limit)
-    }
+    let adverts_total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM adverts")
+    .fetch_one(&db)
+    .await
+    .map_err(|_| ())?;
+
+    let users_result: Vec<User> = 
+        sqlx::query_as("SELECT * FROM users ORDER BY ID DESC LIMIT ? OFFSET ?")
+        .bind(users_limit)
+        .bind(users_offset)
     .fetch_all(&db)
     .await
     .map_err(|_| ())?;
 
-    Ok((advert_result, users_result))
+    let users_total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
+    .fetch_one(&db)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to get users count: {}", e);
+        ()})?;
+
+    Ok(((advert_result, adverts_total_count), (users_result, users_total_count)))
 }

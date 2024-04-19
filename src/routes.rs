@@ -73,14 +73,16 @@ pub async fn mod_page() -> impl IntoResponse {
 
 
 pub async fn register(token: CsrfToken, Form(form): Form<RegisterForm>) -> impl IntoResponse {
-    if let Err(e) = token.verify(&form.csrf_token) {
-        // Wrong csrf
-        "Token is invalid"
+    if let Err(_e) = token.verify(&form.csrf_token) {
+        "Error".into_response()
     } else {
         // Token is valid, register
-        "Token is Valid lets do stuff!"
+        if let Ok(_) = db::create_new_user(&form.username, &form.password).await {
+            Redirect::to("/").into_response()            
+        } else {
+            "Failed to register".into_response()
+        }
     }
-
 }
 
 #[derive(Template)]
@@ -92,7 +94,9 @@ pub struct RegisterFormTemplate<'a> {
 
 #[derive(Deserialize)]
 pub struct RegisterForm {
-    pub csrf_token: String
+    pub csrf_token: String,
+    pub username: String,
+    pub password: String,
 }
 
 pub async fn register_form(token: CsrfToken) -> impl IntoResponse {
@@ -111,4 +115,9 @@ pub async fn item_new() -> impl IntoResponse {
 
 pub async fn item_new_form() -> impl IntoResponse {
     "Create new item form"
+}
+
+
+pub async fn profile(auth_session: AuthSession<AuthBackend>) -> impl IntoResponse {
+    auth_session.user.unwrap().username
 }

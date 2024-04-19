@@ -2,10 +2,10 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use axum_csrf::{CsrfConfig, CsrfLayer, Key};
+use axum_csrf::{CsrfConfig, CsrfLayer};
 use axum_login::{login_required, permission_required, AuthManagerLayerBuilder};
 
-use tower_sessions::{cookie, MemoryStore, SessionManagerLayer};
+use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 use crate::auth::AuthBackend;
 
@@ -76,6 +76,12 @@ fn user_router() -> Router {
             AuthBackend,
             login_url = "/login",
             "user.write"
+        ))
+        .route("/profile", get(routes::profile))
+        .route_layer(permission_required!(
+            AuthBackend,
+            login_url = "/login",
+            "user.read"
         ))
 }
 

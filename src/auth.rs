@@ -130,8 +130,6 @@ impl AuthzBackend for AuthBackend {
             "#,
         ).bind(user.id).fetch_all(&self.db).await.map_err(|e|AuthError::SQLError(e))?;
 
-        let result = permissions.into_iter().collect();
-        dbg!(&result);
-        Ok(result)
+        Ok(permissions.into_iter().collect())
     }
 }

@@ -36,6 +36,8 @@ struct ModeratorPageTemplate {
     total_advert_pages: i64,
     user_page: i64,
     total_user_pages: i64,
+
+    logged_in: bool,
 }
 
 pub async fn mod_page(token: CsrfToken, Query(params): Query<ModPageParams>) -> impl IntoResponse {
@@ -70,6 +72,7 @@ pub async fn mod_page(token: CsrfToken, Query(params): Query<ModPageParams>) -> 
         total_advert_pages,
         user_page,
         total_user_pages,
+        logged_in: true,
     };
     let reply_html = template.render().unwrap();
     (token, Html(reply_html).into_response()).into_response()

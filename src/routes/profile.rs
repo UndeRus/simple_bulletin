@@ -15,6 +15,7 @@ pub struct ProfilePageTemplate {
     adverts: Vec<Advert>,
     total_pages: i64,
     page: i64,
+    logged_in: bool,
 }
 
 #[derive(Deserialize)]
@@ -50,6 +51,7 @@ pub async fn profile(
         adverts,
         total_pages,
         page,
+        logged_in: true,
     };
     let reply_html = template.render().unwrap();
     (token, Html(reply_html).into_response()).into_response()

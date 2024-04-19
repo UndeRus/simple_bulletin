@@ -12,11 +12,15 @@
     <header>
       <div>
         <a href="/">Main</a>
+        {% if !logged_in %}
         <a href="/register">Register</a>
-        <a href="/profile">Profile</a>
         <a href="/login">Login</a>
-        <a href="/logout">Logout</a>
+        {% endif %}
+        {% if logged_in %}
         <a href="/item/new">New advert</a>
+        <a href="/profile">Profile</a>
+        <a href="/logout">Logout</a>
+        {% endif %}
       </div>
     </header>
     {% block body %}

@@ -20,6 +20,7 @@ pub struct ItemPageTemplate {
     csrf_token: String,
     advert: Advert,
     own_advert: bool,
+    logged_in: bool,
 }
 
 #[derive(Deserialize)]
@@ -71,6 +72,7 @@ pub async fn item_page(
     };
 
     let user = auth_session.user.clone();
+    let logged_in = user.is_some();
     let user_id = user.clone().map(|u| u.id);
     let is_admin = if let Some(user) = user {
         auth_session
@@ -97,6 +99,7 @@ pub async fn item_page(
         csrf_token,
         advert,
         own_advert,
+        logged_in,
     };
     let reply_html = template.render().unwrap();
     (token, Html(reply_html).into_response()).into_response()
@@ -137,16 +140,22 @@ pub async fn item_new(
 #[template(path = "item_new.html")]
 pub struct ItemNewFormTemplate<'a> {
     pub csrf_token: &'a str,
+    logged_in: bool,
 }
 
-pub async fn item_new_form(token: CsrfToken) -> impl IntoResponse {
+pub async fn item_new_form(
+    token: CsrfToken,
+    auth_session: AuthSession<AuthBackend>,
+) -> impl IntoResponse {
     let csrf_token = if let Ok(csrf_token) = token.authenticity_token() {
         csrf_token
     } else {
         return "Failed to get csrf token".into_response();
     };
+    let logged_in = auth_session.user.is_some();
     let template = ItemNewFormTemplate {
         csrf_token: &csrf_token,
+        logged_in,
     };
     let reply_html = template.render().unwrap();
     (token, Html(reply_html)).into_response()

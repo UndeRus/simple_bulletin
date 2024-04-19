@@ -45,12 +45,14 @@ pub async fn login_with_password(
     .into_response()
 }
 
-#[derive(Template)]
+#[derive(Template, Default)]
 #[template(path = "login.html")]
-pub struct LoginFormTemplate {}
+pub struct LoginFormTemplate {
+    logged_in: bool
+}
 
 pub async fn login_form() -> impl IntoResponse {
-    let template = LoginFormTemplate {};
+    let template = LoginFormTemplate::default();
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response())
 }
@@ -77,6 +79,7 @@ pub async fn register(token: CsrfToken, Form(form): Form<RegisterForm>) -> impl 
 #[template(path = "register.html")]
 pub struct RegisterFormTemplate<'a> {
     csrf_token: &'a str,
+    logged_in: bool,
 }
 
 #[derive(Deserialize)]
@@ -90,6 +93,7 @@ pub async fn register_form(token: CsrfToken) -> impl IntoResponse {
     let csrf_token = token.authenticity_token().unwrap();
     let template = RegisterFormTemplate {
         csrf_token: &csrf_token,
+        logged_in: false,
     };
     let reply_html = template.render().unwrap();
 

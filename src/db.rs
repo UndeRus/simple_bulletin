@@ -220,3 +220,18 @@ pub async fn toggle_user_active(user_id: i64, active: bool) -> Result<(), ()> {
         ()})?;
     Ok(())
 }
+
+pub async fn check_advert_belong_to_user(user_id: i64, advert_id: i64) -> Result<bool, ()> {
+    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+
+    let result: Option<i64> = sqlx::query_scalar("SELECT advert_id from users_adverts WHERE user_id = ? AND advert_id = ?")
+    .bind(user_id)
+    .bind(advert_id)
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to get user advert belong: {}", e);
+        ()})?;
+
+    Ok(result.is_some())
+}

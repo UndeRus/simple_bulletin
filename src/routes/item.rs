@@ -1,7 +1,6 @@
 use askama::Template;
 use axum::{
     extract::Path,
-    http::StatusCode,
     response::{Html, IntoResponse, Redirect},
     Form,
 };
@@ -23,11 +22,41 @@ pub struct ItemPageTemplate {
     own_advert: bool,
 }
 
+#[derive(Deserialize)]
+pub struct ItemEditForm {
+    csrf_token: String
+}
+
 pub async fn item_page_edit(
     token: CsrfToken,    
-    Path(item_id): Path<i64>,
-) {
-    
+    auth_session: AuthSession<AuthBackend>,
+    Path(advert_id): Path<i64>,
+    Form(form): Form<ItemEditForm>,
+) -> impl IntoResponse {
+    if token.verify(&form.csrf_token).is_err() {
+        return "Failed to get csrf token".into_response();
+    };
+
+    let user_id = if let Some(user_id) = auth_session.user.map(|u|u.id) {
+        user_id
+    } else {
+        return "No user found".into_response();
+    };
+
+    if let Ok(is_own_advert) = db::check_advert_belong_to_user(user_id, advert_id).await {
+        if is_own_advert {
+            //TODO: unpublish
+            if db::toggle_advert_publish(advert_id, false).await.is_ok() {
+                return Redirect::to(&format!("/item/{}", advert_id)).into_response();
+            } else {
+                return "Failed to unpublish advert".into_response();
+            }
+        } else {
+            return "You tried edit someone else advert".into_response();    
+        }
+    } else {
+        return "You tried edit someone else advert".into_response();
+    }
 }
 
 pub async fn item_page(
@@ -71,7 +100,7 @@ pub async fn item_page(
          own_advert,
     };
     let reply_html = template.render().unwrap();
-    (StatusCode::OK, Html(reply_html).into_response()).into_response()
+    (token, Html(reply_html).into_response()).into_response()
 }
 
 #[derive(Deserialize)]

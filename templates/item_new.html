@@ -1,16 +1,14 @@
-<html>
-    <head>
-        <title>New advert</title>
-    </head>
-    <body>
-        Create new advert
-        <form method="post">
-            <input name="csrf_token" type="hidden" value="{{ csrf_token }}">
-            <p>Title</p>
-            <input name="title" />
-            <p>Content</p>
-            <textarea name="content"></textarea><br>
-            <button>New advert</button>
-        </form>
-    </body>
-</html>
+{% extends "base.html" %}
+{% block title %}New advert{% endblock %}
+
+{% block body %}
+<h1>Create new advert</h1>
+<form method="post">
+    <input name="csrf_token" type="hidden" value="{{ csrf_token }}">
+    <p>Title</p>
+    <input name="title" />
+    <p>Content</p>
+    <textarea name="content"></textarea><br>
+    <button>New advert</button>
+</form>
+{% endblock %}

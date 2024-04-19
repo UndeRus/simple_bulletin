@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      {% block title %}
+      {% endblock %}
+    </title>
+    {% block head %}
+    {% endblock %}
+  </head>
+  <body>
+    <header>
+      <div>
+        <a href="/">Main</a>
+        <a href="/register">Register</a>
+        <a href="/profile">Profile</a>
+        <a href="/login">Login</a>
+        <a href="/logout">Logout</a>
+        <a href="/item/new">New advert</a>
+      </div>
+    </header>
+    {% block body %}
+    {% endblock %}
+  </body>
+</html>

@@ -1,103 +1,102 @@
-<html>
-    <head>
-        <title>Adverts</title>
-    </head>
-    <body>
-        <h2>Adverts</h2>
-        <table>
-            <tr>
-                <th>#</th>
-                <th>Заголовок</th>
-                <th>Описание</th>
-                <th>Опубликован</th>
-            </tr>
-            {% for advert in adverts %}
-            <tr>
-                <td><a href="/item/{{advert.id}}">#</a></td>
-                <td>{{advert.title}}</td>
-                <td>{{advert.content}}</td>
-                <td>
-                    <form method="post" action="/mod?advert_page={{advert_page}}&user_page={{user_page}}">
-                        <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
-                        <input type="hidden" name="id" value="{{advert.id}}" />
-                        {% if advert.published %}
-                        <input type="hidden" name="action" value="ua" />
-                        <button>Unpublish</button>
-                        {% else %}
-                        <input type="hidden" name="action" value="pa" />
-                        <button>Publish</button>
-                        {% endif %}
-                    </form></td>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        <div>
-            {% if advert_page > 1 %}
-                <a href="?advert_page=1&user_page={{ user_page }}">First</a>
-                <a href="?advert_page={{ advert_page - 1 }}&user_page={{ user_page }}">Previous</a>
-            {% endif %}
-    
-            {% for p in 1..=total_advert_pages %}
-                {% if p == advert_page %}
-                    <span>{{ p }}</span>
+{% extends "base.html" %}
+{% block title %}Mod page{% endblock %}
+
+{% block body %}
+<h1>Mod page</h1>
+<h2>Adverts</h2>
+<table>
+    <tr>
+        <th>#</th>
+        <th>Заголовок</th>
+        <th>Описание</th>
+        <th>Опубликован</th>
+    </tr>
+    {% for advert in adverts %}
+    <tr>
+        <td><a href="/item/{{advert.id}}">#</a></td>
+        <td>{{advert.title}}</td>
+        <td>{{advert.content}}</td>
+        <td>
+            <form method="post" action="/mod?advert_page={{advert_page}}&user_page={{user_page}}">
+                <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+                <input type="hidden" name="id" value="{{advert.id}}" />
+                {% if advert.published %}
+                <input type="hidden" name="action" value="ua" />
+                <button>Unpublish</button>
                 {% else %}
-                    <a href="?advert_page={{ p }}&user_page={{ user_page }}">{{ p }}</a>
+                <input type="hidden" name="action" value="pa" />
+                <button>Publish</button>
                 {% endif %}
-            {% endfor %}
-    
-            {% if advert_page < total_advert_pages %}
-                <a href="?advert_page={{ advert_page + 1 }}&user_page={{ user_page }}">Next</a>
-                <a href="?advert_page={{ total_advert_pages }}&user_page={{ user_page }}">Last</a>
-            {% endif %}
-        </div>
-    
-        <h2>Users</h2>
-        <table>
-            <tr>
-                <th>#</th>
-                <th>Имя пользователя</th>
-                <th>Активен</th>
-            </tr>
-            {% for user in users %}
-            <tr>
-                <td>{{user.id}}</td>
-                <td>{{user.username}}</td>
-                <td>
-                    <form method="post" action="/mod?advert_page={{advert_page}}&user_page={{user_page}}">
-                        <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
-                        <input type="hidden" name="id" value="{{user.id}}" />
-                        {% if user.active %}
-                        <input type="hidden" name="action" value="du" />
-                        <button>Deactivate</button>
-                        {% else %}
-                        <input type="hidden" name="action" value="au" />
-                        <button>Activate</button>
-                        {% endif %}
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-       
-        <div>
-            {% if user_page > 1 %}
-                <a href="?user_page=1&advert_page={{ advert_page }}">First</a>
-                <a href="?user_page={{ user_page - 1 }}&advert_page={{ advert_page }}">Previous</a>
-            {% endif %}
-    
-            {% for p in 1..=total_user_pages %}
-                {% if p == user_page %}
-                    <span>{{ p }}</span>
+            </form></td>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<div>
+    {% if advert_page > 1 %}
+        <a href="?advert_page=1&user_page={{ user_page }}">First</a>
+        <a href="?advert_page={{ advert_page - 1 }}&user_page={{ user_page }}">Previous</a>
+    {% endif %}
+
+    {% for p in 1..=total_advert_pages %}
+        {% if p == advert_page %}
+            <span>{{ p }}</span>
+        {% else %}
+            <a href="?advert_page={{ p }}&user_page={{ user_page }}">{{ p }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if advert_page < total_advert_pages %}
+        <a href="?advert_page={{ advert_page + 1 }}&user_page={{ user_page }}">Next</a>
+        <a href="?advert_page={{ total_advert_pages }}&user_page={{ user_page }}">Last</a>
+    {% endif %}
+</div>
+
+<h2>Users</h2>
+<table>
+    <tr>
+        <th>#</th>
+        <th>Имя пользователя</th>
+        <th>Активен</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{user.id}}</td>
+        <td>{{user.username}}</td>
+        <td>
+            <form method="post" action="/mod?advert_page={{advert_page}}&user_page={{user_page}}">
+                <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+                <input type="hidden" name="id" value="{{user.id}}" />
+                {% if user.active %}
+                <input type="hidden" name="action" value="du" />
+                <button>Deactivate</button>
                 {% else %}
-                    <a href="?user_page={{ p }}&advert_page={{ advert_page }}">{{ p }}</a>
+                <input type="hidden" name="action" value="au" />
+                <button>Activate</button>
                 {% endif %}
-            {% endfor %}
-    
-            {% if user_page < total_user_pages %}
-                <a href="?user_page={{ user_page + 1 }}&advert_page={{ advert_page }}">Next</a>
-                <a href="?user_page={{ total_user_pages }}&advert_page={{ advert_page }}">Last</a>
-            {% endif %}
-        </div>
-    </body>
-</html>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div>
+    {% if user_page > 1 %}
+        <a href="?user_page=1&advert_page={{ advert_page }}">First</a>
+        <a href="?user_page={{ user_page - 1 }}&advert_page={{ advert_page }}">Previous</a>
+    {% endif %}
+
+    {% for p in 1..=total_user_pages %}
+        {% if p == user_page %}
+            <span>{{ p }}</span>
+        {% else %}
+            <a href="?user_page={{ p }}&advert_page={{ advert_page }}">{{ p }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if user_page < total_user_pages %}
+        <a href="?user_page={{ user_page + 1 }}&advert_page={{ advert_page }}">Next</a>
+        <a href="?user_page={{ total_user_pages }}&advert_page={{ advert_page }}">Last</a>
+    {% endif %}
+</div>
+{% endblock %}

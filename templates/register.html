@@ -1,17 +1,15 @@
-<html>
-    <head>
-        <title>Register</title>
-    </head>
-    <body>
-        Register form
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
 
-        <form method="post">
-            <input name="csrf_token" type="hidden" value="{{ csrf_token }}">
-            <p>Username</p>
-            <input name="username" />
-            <p>Password</p>
-            <input name="password" type="password" />
-            <button>Register</button>
-        </form>
-    </body>
-</html>
+{% block body %}
+<h1>Register form</h1>
+
+<form method="post">
+    <input name="csrf_token" type="hidden" value="{{ csrf_token }}">
+    <p>Username</p>
+    <input name="username" />
+    <p>Password</p>
+    <input name="password" type="password" />
+    <button>Register</button>
+</form>
+{% endblock %}

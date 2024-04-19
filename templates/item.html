@@ -1,16 +1,14 @@
-<html>
-    <head>
-        <title>Advert: {{advert.title}}</title>
-    </head>
-    <body>
-        <h1>{{advert.title}}</h1>
-        <p>{{advert.content}}</p>
-        {% if advert.published && own_advert %}
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
-            <input type="hidden" name="advert_id" value="{{advert.id}}" />
-            <button>Unpublish</button>
-        </form>
-        {% endif %}
-    </body>
-</html>
+{% extends "base.html" %}
+{% block title %}Advert: {{advert.title}}{% endblock %}
+
+{% block body %}
+<h1>{{advert.title}}</h1>
+<p>{{advert.content}}</p>
+{% if advert.published && own_advert %}
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+    <input type="hidden" name="advert_id" value="{{advert.id}}" />
+    <button>Unpublish</button>
+</form>
+{% endif %}
+{% endblock %}

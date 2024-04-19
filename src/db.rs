@@ -1,17 +1,22 @@
 use crate::{auth_models::User, models::Advert};
 use password_auth::generate_hash;
-use sqlx::{migrate::MigrateDatabase, sqlite::SqliteConnectOptions, Pool, Sqlite, SqlitePool};
-use std::env;
+use sqlx::{migrate::{MigrateDatabase, Migrator}, sqlite::SqliteConnectOptions, Pool, Sqlite, SqlitePool};
+
+static MIGRATOR: Migrator = sqlx::migrate!();
 
 pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
-    use std::path::Path;
     if !sqlx::Sqlite::database_exists(db_url)
         .await
-        .map_err(|_| ())?
+        .map_err(|e|{
+            println!("Failed to check if database exists {}", e);
+             ()
+            })?
     {
         sqlx::Sqlite::create_database(db_url)
             .await
-            .map_err(|_| ())?;
+            .map_err(|e|{
+                println!("Failed to create database {}", e);
+                 ()})?;
     }
 
     // Connect to the database
@@ -19,22 +24,7 @@ pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
     let db = SqlitePool::connect_with(connect_options).await.map_err(|_| ())?;
 
     // Migrate the database
-    let migrations = if env::var("RUST_ENV") == Ok("production".to_string()) {
-        // Productions migrations dir
-        std::env::current_exe()
-            .map_err(|_| ())?
-            .join("./migrations")
-    } else {
-        // Development migrations dir
-        let crate_dir = std::env::var("CARGO_MANIFEST_DIR").map_err(|_| ())?;
-        Path::new(&crate_dir).join("./migrations")
-    };
-    sqlx::migrate::Migrator::new(migrations)
-        .await
-        .map_err(|e| {
-            println!("Migration error {}", e);
-            ()
-        })?
+    MIGRATOR
         .run(&db)
         .await
         .map_err(|e| {

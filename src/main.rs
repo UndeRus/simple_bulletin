@@ -12,6 +12,7 @@ use crate::auth::AuthBackend;
 mod auth;
 mod db;
 mod routes;
+mod models;
 
 #[tokio::main]
 async fn main() {

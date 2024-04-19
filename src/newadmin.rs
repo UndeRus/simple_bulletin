@@ -1,6 +1,7 @@
 use password_auth::generate_hash;
 
 mod db;
+mod models;
 
 #[tokio::main]
 async fn main() {

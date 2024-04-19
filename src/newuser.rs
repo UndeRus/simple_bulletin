@@ -5,5 +5,6 @@ mod models;
 #[tokio::main]
 async fn main() {
     println!("Create new user");
-    db::create_new_user("user", "123").await.unwrap();
+    let database = db::create_db("simple_bulletin.db").await.expect("Can't open database");
+    db::create_new_user(&database, "user", "123").await.unwrap();
 }

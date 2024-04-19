@@ -1,14 +1,14 @@
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
-    extract::Query,
+    extract::{Query, State},
     response::{Html, Redirect},
     Form,
 };
 use axum_csrf::CsrfToken;
 use serde::Deserialize;
 
-use crate::{auth_models::User, db, models::Advert};
+use crate::{auth_models::User, db, models::Advert, AppState};
 
 const ADVERTS_LIMIT: i64 = 10;
 const USERS_LIMIT: i64 = 10;
@@ -40,7 +40,7 @@ struct ModeratorPageTemplate {
     logged_in: bool,
 }
 
-pub async fn mod_page(token: CsrfToken, Query(params): Query<ModPageParams>) -> impl IntoResponse {
+pub async fn mod_page(State(state): State<AppState>, token: CsrfToken, Query(params): Query<ModPageParams>) -> impl IntoResponse {
     let csrf_token = if let Ok(csrf_token) = token.authenticity_token() {
         csrf_token
     } else {
@@ -53,8 +53,10 @@ pub async fn mod_page(token: CsrfToken, Query(params): Query<ModPageParams>) -> 
     let users_per_page = USERS_LIMIT;
     let adverts_offset = (advert_page - 1) * adverts_per_page;
     let users_offset = (user_page - 1) * users_per_page;
+
+    let db= state.db.read().await;
     let ((adverts, adverts_total_count), (users, users_total_count)) = if let Ok((adverts, users)) =
-        db::get_mod_page(adverts_offset, ADVERTS_LIMIT, users_offset, USERS_LIMIT).await
+        db::get_mod_page(&db, adverts_offset, ADVERTS_LIMIT, users_offset, USERS_LIMIT).await
     {
         (adverts, users)
     } else {
@@ -96,6 +98,7 @@ pub struct ModEditForm {
 }
 
 pub async fn mod_edit(
+    State(state): State<AppState>, 
     token: CsrfToken,
     Query(params): Query<ModPageParams>,
     Form(form): Form<ModEditForm>,
@@ -104,12 +107,13 @@ pub async fn mod_edit(
         return "Failed to verify csrf".into_response();
     }
 
-    //TODO: add csrf
+    let db= state.db.write().await;
+
     let result = match form.action.as_str() {
-        ACTIVATE_USER_ACTION => db::toggle_user_active(form.id, true).await,
-        DEACTIVATE_USER_ACTION => db::toggle_user_active(form.id, false).await,
-        PUBLISH_ADVERT_ACTION => db::toggle_advert_publish(form.id, true).await,
-        UNPUBLISH_ADVERT_ACTION => db::toggle_advert_publish(form.id, false).await,
+        ACTIVATE_USER_ACTION => db::toggle_user_active(&db, form.id, true).await,
+        DEACTIVATE_USER_ACTION => db::toggle_user_active(&db, form.id, false).await,
+        PUBLISH_ADVERT_ACTION => db::toggle_advert_publish(&db,form.id, true).await,
+        UNPUBLISH_ADVERT_ACTION => db::toggle_advert_publish(&db, form.id, false).await,
         _ => Err(()),
     };
     if result.is_ok() {

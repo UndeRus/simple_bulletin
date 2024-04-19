@@ -1,10 +1,10 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::Query, http::StatusCode, response::Html};
+use axum::{extract::{Query, State}, http::StatusCode, response::Html};
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::AuthBackend, db, models::Advert};
+use crate::{auth::AuthBackend, db, models::Advert, AppState};
 
 const MAIN_PAGE_LIMIT: i64 = 10;
 
@@ -23,6 +23,7 @@ pub struct MainPageParams {
 }
 
 pub async fn main_board(
+    State(state): State<AppState>,
     Query(params): Query<MainPageParams>,
     auth_session: AuthSession<AuthBackend>,
 ) -> impl IntoResponse {
@@ -30,8 +31,9 @@ pub async fn main_board(
     let per_page = MAIN_PAGE_LIMIT;
     let offset = (page - 1) * per_page;
 
+    let db = state.db.read().await;
     let (adverts, total_count) =
-        if let Ok(adverts) = db::get_main_page(MAIN_PAGE_LIMIT, offset).await {
+        if let Ok(adverts) = db::get_main_page(&db,MAIN_PAGE_LIMIT, offset).await {
             adverts
         } else {
             return "Main page error".into_response();

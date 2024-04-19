@@ -1,21 +1,21 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{collections::HashSet, fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 use axum_login::{AuthnBackend, AuthzBackend, UserId};
 use password_auth::verify_password;
 use serde::Deserialize;
-use sqlx::{FromRow, SqlitePool};
-use tokio::task;
+use sqlx::{FromRow, Pool, Sqlite};
+use tokio::{sync::RwLock, task};
 
 use crate::auth_models::User;
 
 #[derive(Clone)]
 pub struct AuthBackend {
-    pub db: SqlitePool,
+    pub db: Arc<RwLock<Pool<Sqlite>>>,
 }
 
 impl AuthBackend {
-    pub fn new(db: SqlitePool) -> Self {
+    pub fn new(db: Arc<RwLock<Pool<Sqlite>>>) -> Self {
         Self { db }
     }
 }
@@ -62,9 +62,10 @@ impl AuthnBackend for AuthBackend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
+        let db = self.db.read().await;
         let user: Option<Self::User> = sqlx::query_as("select * from users where username = ? ")
             .bind(creds.username)
-            .fetch_optional(&self.db)
+            .fetch_optional(&*db)
             .await
             .map_err(|e| {
                 println!("SQL Error {}", e);
@@ -87,9 +88,10 @@ impl AuthnBackend for AuthBackend {
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
+        let db = self.db.read().await;
         let user = sqlx::query_as("select * from users where id = ? AND active = TRUE")
             .bind(user_id)
-            .fetch_optional(&self.db)
+            .fetch_optional(&*db)
             .await
             .map_err(|e| AuthError::SQLError(e))?;
         Ok(user)
@@ -104,6 +106,7 @@ impl AuthzBackend for AuthBackend {
         &self,
         user: &Self::User,
     ) -> Result<HashSet<Self::Permission>, Self::Error> {
+        let db = self.db.read().await;
         let permissions: Vec<Self::Permission> = sqlx::query_as(
             r#"
             select distinct permissions.name
@@ -115,7 +118,7 @@ impl AuthzBackend for AuthBackend {
             "#,
         )
         .bind(user.id)
-        .fetch_all(&self.db)
+        .fetch_all(&*db)
         .await
         .map_err(|e| {
             dbg!(&e);

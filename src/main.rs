@@ -1,10 +1,13 @@
+use std::{clone, sync::Arc};
+
 use axum::{
-    routing::{get, post},
-    Router,
+    routing::{get, post}, Router
 };
 use axum_csrf::{CsrfConfig, CsrfLayer};
 use axum_login::{login_required, permission_required, AuthManagerLayerBuilder};
 
+use sqlx::{Pool, Sqlite};
+use tokio::sync::RwLock;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 use crate::auth::AuthBackend;
@@ -26,6 +29,11 @@ async fn main() {
         .unwrap();
 }
 
+#[derive(Clone)]
+pub struct AppState {
+    db: Arc<RwLock<Pool<Sqlite>>>
+}
+
 async fn router() -> Router {
     let csrf_config = CsrfConfig::default();
 
@@ -36,8 +44,16 @@ async fn router() -> Router {
         .await
         .expect("Failed to create db");
 
+    let db = Arc::new(RwLock::new(db.clone()));
+
+    let state = AppState {
+        db: db.clone()
+    };
+
     let backend = AuthBackend::new(db);
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+
+
 
     Router::new()
         .merge(mod_router())
@@ -50,9 +66,10 @@ async fn router() -> Router {
         .route("/item/:id", post(routes::item_page_edit))
         .layer(auth_layer)
         .layer(CsrfLayer::new(csrf_config))
+        .with_state(state)
 }
 
-fn mod_router() -> Router {
+fn mod_router() -> Router<AppState> {
     Router::new()
         .route("/mod", get(routes::mod_page))
         .route_layer(permission_required!(
@@ -63,7 +80,7 @@ fn mod_router() -> Router {
         .route("/mod", post(routes::mod_edit))
 }
 
-fn auth_router() -> Router {
+fn auth_router() -> Router<AppState> {
     Router::new()
         .route("/logout", get(routes::logout))
         .route_layer(login_required!(AuthBackend, login_url = "/login"))
@@ -71,7 +88,7 @@ fn auth_router() -> Router {
         .route("/login", get(routes::login_form))
 }
 
-fn user_router() -> Router {
+fn user_router() -> Router<AppState> {
     Router::new()
         .route("/item/new", post(routes::item_new))
         .route_layer(permission_required!(

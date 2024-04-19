@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     response::{Html, IntoResponse, Redirect},
     Form,
 };
@@ -11,7 +11,7 @@ use serde::Deserialize;
 use crate::{
     auth::{AuthBackend, AuthPermission},
     db,
-    models::Advert,
+    models::Advert, AppState,
 };
 
 #[derive(Template)]
@@ -29,6 +29,7 @@ pub struct ItemEditForm {
 }
 
 pub async fn item_page_edit(
+    State(state): State<AppState>, 
     token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Path(advert_id): Path<i64>,
@@ -44,10 +45,10 @@ pub async fn item_page_edit(
         return "No user found".into_response();
     };
 
-    if let Ok(is_own_advert) = db::check_advert_belong_to_user(user_id, advert_id).await {
+    let db: tokio::sync::RwLockWriteGuard<'_, sqlx::Pool<sqlx::Sqlite>> = state.db.write().await;
+    if let Ok(is_own_advert) = db::check_advert_belong_to_user(&db, user_id, advert_id).await {
         if is_own_advert {
-            //TODO: unpublish
-            if db::toggle_advert_publish(advert_id, false).await.is_ok() {
+            if db::toggle_advert_publish(&db, advert_id, false).await.is_ok() {
                 return Redirect::to(&format!("/item/{}", advert_id)).into_response();
             } else {
                 return "Failed to unpublish advert".into_response();
@@ -61,6 +62,7 @@ pub async fn item_page_edit(
 }
 
 pub async fn item_page(
+    State(state): State<AppState>, 
     token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Path(item_id): Path<i64>,
@@ -88,8 +90,9 @@ pub async fn item_page(
     } else {
         false
     };
+    let db = state.db.read().await;
     let (advert, own_advert) =
-        if let Ok(advert) = db::get_advert_by_id(user_id, item_id, is_admin).await {
+        if let Ok(advert) = db::get_advert_by_id(&db, user_id, item_id, is_admin).await {
             advert
         } else {
             return "Not found".into_response();
@@ -113,6 +116,7 @@ pub struct ItemNewForm {
 }
 
 pub async fn item_new(
+    State(state): State<AppState>, 
     token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Form(form): Form<ItemNewForm>,
@@ -126,8 +130,9 @@ pub async fn item_new(
     if let Err(_e) = token.verify(&form.csrf_token) {
         return "Error".into_response();
     }
+    let db = state.db.write().await;
     let new_advert_id =
-        if let Ok(id) = db::create_new_advert(user.id, &form.title, &form.content).await {
+        if let Ok(id) = db::create_new_advert(&db, user.id, &form.title, &form.content).await {
             id
         } else {
             return "Failed to create advert".into_response();

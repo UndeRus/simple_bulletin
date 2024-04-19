@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::{
-    extract::Query,
+    extract::{Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
     Form,
@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::{
     auth::{AuthBackend, Credentials},
-    db,
+    db, AppState,
 };
 
 #[derive(Deserialize)]
@@ -62,12 +62,13 @@ pub async fn logout(mut auth_session: AuthSession<AuthBackend>) -> impl IntoResp
     Redirect::to("/")
 }
 
-pub async fn register(token: CsrfToken, Form(form): Form<RegisterForm>) -> impl IntoResponse {
+pub async fn register(State(state): State<AppState>, token: CsrfToken, Form(form): Form<RegisterForm>) -> impl IntoResponse {
     if let Err(_e) = token.verify(&form.csrf_token) {
         "Error".into_response()
     } else {
+        let db = state.db.write().await;
         // Token is valid, register
-        if let Ok(_) = db::create_new_user(&form.username, &form.password).await {
+        if let Ok(_) = db::create_new_user(&db,&form.username, &form.password).await {
             Redirect::to("/").into_response()
         } else {
             "Failed to register".into_response()

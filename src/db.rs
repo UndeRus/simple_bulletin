@@ -33,13 +33,13 @@ pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
     Ok(db)
 }
 
-pub async fn create_new_user(username: &str, password: &str) -> Result<(), ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub  async fn  create_new_user(db: &Pool<Sqlite>, username: &str, password: &str) -> Result<(), ()> {
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     sqlx::query("INSERT INTO users(username, password_hash) VALUES(?, ?)")
         .bind(username)
         .bind(generate_hash(password))
-        .execute(&db)
+        .execute(db)
         .await
         .map_err(|_| ())?;
     sqlx::query(
@@ -52,18 +52,18 @@ pub async fn create_new_user(username: &str, password: &str) -> Result<(), ()> {
     )
     .bind(username)
     .bind("users")
-    .execute(&db)
+    .execute(db)
     .await
     .map_err(|_| ())?;
     Ok(())
 }
 
-pub async fn create_new_advert(user_id: i64, title: &str, content: &str) -> Result<i64, ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub async fn create_new_advert(db: &Pool<Sqlite>, user_id: i64, title: &str, content: &str) -> Result<i64, ()> {
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
     let advert_id = sqlx::query("INSERT INTO adverts(title, content) VALUES(?, ?)")
         .bind(title)
         .bind(content)
-        .execute(&db)
+        .execute(db)
         .await
         .map_err(|e| {
             println!("Failed to create advert {}", e);
@@ -73,7 +73,7 @@ pub async fn create_new_advert(user_id: i64, title: &str, content: &str) -> Resu
     sqlx::query("INSERT INTO users_adverts(user_id, advert_id) VALUES(?, ?)")
         .bind(user_id)
         .bind(new_advert_id)
-        .execute(&db)
+        .execute(db)
         .await
         .map_err(|e| {
             println!("Failed to join advert to user {}", e);
@@ -83,18 +83,19 @@ pub async fn create_new_advert(user_id: i64, title: &str, content: &str) -> Resu
 }
 
 pub async fn get_advert_by_id(
+    db: &Pool<Sqlite>,
     user_id: Option<i64>,
     id: i64,
     is_admin: bool,
 ) -> Result<(Advert, bool), ()> {
     let mut is_own = false;
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
     let result: Option<Advert> = if is_admin {
         is_own = true;
         sqlx::query_as("SELECT * FROM adverts WHERE id = ?")
             .bind(id)
     } else if let Some(user_id) = user_id {
-        let advert_user_id: i64 = sqlx::query_scalar("SELECT user_id FROM users_adverts WHERE advert_id = ?").bind(id).fetch_one(&db).await.map_err(|e| {
+        let advert_user_id: i64 = sqlx::query_scalar("SELECT user_id FROM users_adverts WHERE advert_id = ?").bind(id).fetch_one(db).await.map_err(|e| {
             println!("Failed to get item user {}", e);
             ()})?;
 
@@ -106,7 +107,7 @@ pub async fn get_advert_by_id(
     } else {
         sqlx::query_as("SELECT * FROM adverts WHERE id = ? AND published = true").bind(id) 
     }
-           .fetch_optional(&db)
+           .fetch_optional(db)
 .await
     .map_err(|e| {
         println!("Failed to get item {}", e);
@@ -114,15 +115,17 @@ pub async fn get_advert_by_id(
     result.map(|r| (r, is_own)).ok_or(())
 }
 
-pub async fn get_main_page(limit: i64, offset: i64) -> Result<(Vec<Advert>, i64), ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub async fn get_main_page(
+    db: &Pool<Sqlite>,
+    limit: i64, offset: i64) -> Result<(Vec<Advert>, i64), ()> {
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     let result: Vec<Advert> = sqlx::query_as(
         "SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT ? OFFSET ?",
     )
     .bind(limit)
     .bind(offset)
-    .fetch_all(&db)
+    .fetch_all(db)
     .await
     .map_err(|e| {
         println!("Failed to get adverts: {}", e);
@@ -131,30 +134,31 @@ pub async fn get_main_page(limit: i64, offset: i64) -> Result<(Vec<Advert>, i64)
 
     let total_count: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM adverts WHERE published = true")
-            .fetch_one(&db)
+            .fetch_one(db)
             .await
             .map_err(|_| ())?;
     Ok((result, total_count))
 }
 
 pub async fn get_mod_page(
+    db: &Pool<Sqlite>,
     adverts_offset: i64,
     adverts_limit: i64,
     users_offset: i64,
     users_limit: i64,
 ) -> Result<((Vec<Advert>, i64), (Vec<User>, i64)), ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     let advert_result: Vec<Advert> =
         sqlx::query_as("SELECT * FROM adverts ORDER BY ID DESC LIMIT ? OFFSET ?")
             .bind(adverts_limit)
             .bind(adverts_offset)
-            .fetch_all(&db)
+            .fetch_all(db)
             .await
             .map_err(|_| ())?;
 
     let adverts_total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM adverts")
-        .fetch_one(&db)
+        .fetch_one(db)
         .await
         .map_err(|_| ())?;
 
@@ -162,12 +166,12 @@ pub async fn get_mod_page(
         sqlx::query_as("SELECT * FROM users ORDER BY ID DESC LIMIT ? OFFSET ?")
             .bind(users_limit)
             .bind(users_offset)
-            .fetch_all(&db)
+            .fetch_all(db)
             .await
             .map_err(|_| ())?;
 
     let users_total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
-        .fetch_one(&db)
+        .fetch_one(db)
         .await
         .map_err(|e| {
             eprintln!("Failed to get users count: {}", e);
@@ -180,13 +184,13 @@ pub async fn get_mod_page(
     ))
 }
 
-pub async fn toggle_advert_publish(advert_id: i64, published: bool) -> Result<(), ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub async fn toggle_advert_publish(db: &Pool<Sqlite>,advert_id: i64, published: bool) -> Result<(), ()> {
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     sqlx::query("UPDATE adverts SET published = ? WHERE id = ?")
         .bind(published)
         .bind(advert_id)
-        .execute(&db)
+        .execute(db)
         .await
         .map_err(|e| {
             eprintln!("Failed to update advert publish: {}", e);
@@ -195,13 +199,13 @@ pub async fn toggle_advert_publish(advert_id: i64, published: bool) -> Result<()
     Ok(())
 }
 
-pub async fn toggle_user_active(user_id: i64, active: bool) -> Result<(), ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub async fn toggle_user_active(db: &Pool<Sqlite>,user_id: i64, active: bool) -> Result<(), ()> {
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     sqlx::query("UPDATE users SET active = ? WHERE id = ?")
         .bind(active)
         .bind(user_id)
-        .execute(&db)
+        .execute(db)
         .await
         .map_err(|e| {
             eprintln!("Failed to update users active: {}", e);
@@ -210,15 +214,15 @@ pub async fn toggle_user_active(user_id: i64, active: bool) -> Result<(), ()> {
     Ok(())
 }
 
-pub async fn check_advert_belong_to_user(user_id: i64, advert_id: i64) -> Result<bool, ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub async fn check_advert_belong_to_user(db: &Pool<Sqlite>,user_id: i64, advert_id: i64) -> Result<bool, ()> {
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     let result: Option<i64> = sqlx::query_scalar(
         "SELECT advert_id from users_adverts WHERE user_id = ? AND advert_id = ?",
     )
     .bind(user_id)
     .bind(advert_id)
-    .fetch_optional(&db)
+    .fetch_optional(db)
     .await
     .map_err(|e| {
         eprintln!("Failed to get user advert belong: {}", e);
@@ -229,17 +233,18 @@ pub async fn check_advert_belong_to_user(user_id: i64, advert_id: i64) -> Result
 }
 
 pub async fn get_user_adverts(
+    db: &Pool<Sqlite>,
     user_id: i64,
     offset: i64,
     limit: i64,
 ) -> Result<(Vec<Advert>, i64), ()> {
-    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     let result: Vec<Advert> = sqlx::query_as("SELECT * FROM adverts a JOIN users_adverts u ON a.id = u.advert_id WHERE u.user_id = ? ORDER BY ID DESC LIMIT ? OFFSET ?")
             .bind(user_id)
             .bind(limit)
             .bind(offset)
-    .fetch_all(&db)
+    .fetch_all(db)
     .await
     .map_err(|e| {
         println!("Failed to get user adverts: {}", e);
@@ -248,7 +253,7 @@ pub async fn get_user_adverts(
 
     let total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM adverts a JOIN users_adverts u ON a.id = u.advert_id WHERE u.user_id = ? ")
     .bind(user_id)
-    .fetch_one(&db)
+    .fetch_one(db)
     .await
     .map_err(|_| ())?;
     Ok((result, total_count))

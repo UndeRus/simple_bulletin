@@ -1,11 +1,8 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{fmt::Display};
 
-use anyhow::{anyhow, bail};
 use async_trait::async_trait;
 use axum_login::{AuthUser, AuthnBackend, UserId};
-use data_encoding::HEXUPPER;
 use password_auth::verify_password;
-use ring::digest::{Context, SHA256};
 use serde::Deserialize;
 use sqlx::{FromRow, SqlitePool};
 use tokio::task;

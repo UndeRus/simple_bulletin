@@ -2,7 +2,6 @@
 use axum::{routing::{get, post}, Router};
 use axum_login::{login_required, AuthManagerLayerBuilder};
 
-use sqlx;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 use crate::auth::AuthBackend;

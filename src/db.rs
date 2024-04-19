@@ -1,4 +1,4 @@
-use std::{env, error::Error};
+use std::{env};
 use sqlx::{migrate::MigrateDatabase, Pool, Sqlite, SqlitePool};
 
 pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {

@@ -1,11 +1,11 @@
 use askama::Template;
 use axum::{
-    extract::{Path, Query}, http::StatusCode, middleware::Next, response::{Html, IntoResponse, Redirect}, Form
+    extract::{Path, Query}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form
 };
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::{AuthBackend, Credentials}, db};
+use crate::{auth::{AuthBackend, Credentials}};
 
 #[derive(Deserialize)]
 pub struct NextUrl {

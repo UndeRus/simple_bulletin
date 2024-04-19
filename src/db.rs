@@ -98,13 +98,15 @@ pub async fn get_advert_by_id(id: i64, published: bool) -> Result<Advert, ()> {
     result.ok_or(())
 }
 
-pub async fn get_main_page(before_id: Option<i64>) -> Result<Vec<Advert>, ()> {
+pub async fn get_main_page(limit: i64, before_id: Option<i64>, after_id: Option<i64>) -> Result<Vec<Advert>, ()> {
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
 
     let result: Vec<Advert> = if let Some(before_id) = before_id {
-        sqlx::query_as("SELECT * FROM adverts WHERE id < ? AND published = true ORDER BY ID DESC LIMIT 10").bind(before_id).fetch_all(&db)
+        sqlx::query_as("SELECT * FROM adverts WHERE id < ? AND published = true ORDER BY ID DESC LIMIT ?").bind(before_id).bind(limit).fetch_all(&db)
+    } else if let Some(after_id) = after_id {
+        sqlx::query_as("SELECT * FROM adverts WHERE id > ? AND published = true ORDER BY ID DESC LIMIT ?").bind(after_id).bind(limit).fetch_all(&db)
     } else {
-        sqlx::query_as("SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT 10").fetch_all(&db)
+        sqlx::query_as("SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT ?").bind(limit).fetch_all(&db)
     }.await.map_err(|_|())?;
     Ok(result)
 }

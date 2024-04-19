@@ -12,11 +12,24 @@ async fn main() {
 async fn create_new_admin(username: &str, password: &str) {
     let db = db::create_db("simple_bulletin.db").await.unwrap();
 
-    sqlx::query("INSERT INTO users(username, password_hash) VALUES(?, ?)").bind(username).bind(generate_hash(password)).execute(&db).await.unwrap();
-    sqlx::query(r#"INSERT INTO
+    sqlx::query("INSERT INTO users(username, password_hash, active) VALUES(?, ?, ?)")
+        .bind(username)
+        .bind(generate_hash(password))
+        .bind(true)
+        .execute(&db)
+        .await
+        .unwrap();
+    sqlx::query(
+        r#"INSERT INTO
                  users_groups(user_id, group_id)
                  VALUES(
                     (SELECT id FROM users WHERE username = ?),
                     (SELECT id FROM groups WHERE name = ?)
-                )"#).bind(username).bind("admins").execute(&db).await.unwrap();
+                )"#,
+    )
+    .bind(username)
+    .bind("admins")
+    .execute(&db)
+    .await
+    .unwrap();
 }

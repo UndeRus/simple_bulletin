@@ -105,7 +105,7 @@ impl AuthnBackend for AuthBackend {
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
-        let user = sqlx::query_as("select * from users where id = ?")
+        let user = sqlx::query_as("select * from users where id = ? AND active = TRUE")
             .bind(user_id)
             .fetch_optional(&self.db)
             .await
@@ -126,7 +126,7 @@ impl AuthzBackend for AuthBackend {
             join users_groups on users.id = users_groups.user_id
             join groups_permissions on users_groups.group_id = groups_permissions.group_id
             join permissions on groups_permissions.permission_id = permissions.id
-            where users.id = ?
+            where users.id = ? AND active = true
             "#,
         ).bind(user.id).fetch_all(&self.db).await.map_err(|e|AuthError::SQLError(e))?;
 

@@ -1,19 +1,17 @@
-use std::{fmt::Display};
+use std::{collections::HashSet, fmt::Display};
 
 use async_trait::async_trait;
-use axum_login::{AuthUser, AuthnBackend, UserId};
+use axum_login::{AuthUser, AuthnBackend, AuthzBackend, UserId};
 use password_auth::verify_password;
 use serde::Deserialize;
 use sqlx::{FromRow, SqlitePool};
 use tokio::task;
-
 
 #[derive(Debug, Clone, FromRow)]
 pub struct User {
     pub id: i64,
     pub username: String,
     pub password_hash: String,
-    pub session_id: Option<String>, 
 }
 
 impl AuthUser for User {
@@ -24,11 +22,7 @@ impl AuthUser for User {
     }
 
     fn session_auth_hash(&self) -> &[u8] {
-        if let Some(session_id) = &self.session_id {
-            return session_id.as_bytes();
-        }
-
-        &[]
+        self.password_hash.as_bytes()
     }
 }
 
@@ -50,6 +44,30 @@ pub struct Credentials {
     pub next: Option<String>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash, FromRow)]
+pub struct AuthPermission {
+    pub name: String,
+}
+
+impl From<&str> for AuthPermission {
+    fn from(name: &str) -> Self {
+        AuthPermission {
+            name: name.to_string(),
+        }
+    }
+}
+
+// impl From<&str> for AuthPermission {
+//     fn from(name: &str) -> Self {
+//         let level = match name {
+//             "user" => PermissionLevel::User,
+//             "admin" => PermissionLevel::Admin,
+//             _ => PermissionLevel::Anonymous,
+//         };
+//         AuthPermission { level }
+//     }
+// }
+
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     SQLError(sqlx::Error),
@@ -62,9 +80,6 @@ impl Display for AuthError {
     }
 }
 
-
-
-
 #[async_trait]
 impl AuthnBackend for AuthBackend {
     type User = User;
@@ -75,32 +90,56 @@ impl AuthnBackend for AuthBackend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let user: Option<Self::User> = sqlx::query_as("select id, username, password_hash, session_id from users where username = ? ")
-        .bind(creds.username)
-        .fetch_optional(&self.db)
-        .await.map_err(|e|{
-            println!("SQL Error {}", e);
-            AuthError::SQLError(e)})?;
+        let user: Option<Self::User> =
+            sqlx::query_as("select id, username, password_hash from users where username = ? ")
+                .bind(creds.username)
+                .fetch_optional(&self.db)
+                .await
+                .map_err(|e| {
+                    println!("SQL Error {}", e);
+                    AuthError::SQLError(e)
+                })?;
 
         task::spawn_blocking(move || {
             // We're using password-based authentication--this works by comparing our form
             // input with an argon2 password hash.
-            Ok(user.filter(|user| verify_password(&creds.password, &user.password_hash).is_ok()))
+            Ok(user.filter(|user| {
+                let is_ok = verify_password(&creds.password, &user.password_hash).is_ok();
+                is_ok
+            }))
         })
-        .await.map_err(|_|{
+        .await
+        .map_err(|_| {
             println!("Wrong creds");
             AuthError::WrongCreds
         })?
     }
 
-    async fn get_user(
-        &self,
-        user_id: &UserId<Self>,
-    ) -> Result<Option<Self::User>, Self::Error> {
+    async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
         let user = sqlx::query_as("select * from users where id = ?")
-        .bind(user_id)
-        .fetch_optional(&self.db)
-        .await.map_err(|e|AuthError::SQLError(e))?;
+            .bind(user_id)
+            .fetch_optional(&self.db)
+            .await
+            .map_err(|e| AuthError::SQLError(e))?;
         Ok(user)
+    }
+}
+
+#[async_trait]
+impl AuthzBackend for AuthBackend {
+    type Permission = AuthPermission;
+
+    async fn get_group_permissions(&self, user: &Self::User) -> Result<HashSet<Self::Permission>, Self::Error> {
+        let permissions: Vec<Self::Permission> = sqlx::query_as(
+            r#"
+            select distinct permissions.name
+            from users
+            join users_groups on users.id = users_groups.user_id
+            join groups_permissions on users_groups.group_id = groups_permissions.group_id
+            join permissions on groups_permissions.permission_id = permissions.id
+            where users.id = ?
+            "#,
+        ).bind(user.id).fetch_all(&self.db).await.map_err(|e|AuthError::SQLError(e))?;
+        Ok(permissions.into_iter().collect())
     }
 }

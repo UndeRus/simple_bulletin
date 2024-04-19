@@ -4,6 +4,5 @@ create table if not exists users
 (
     id           integer primary key autoincrement,
     username     text not null unique,
-    password_hash text not null,
-    session_id text
+    password_hash text not null
 );

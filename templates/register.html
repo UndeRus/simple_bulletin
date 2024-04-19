@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <title>Register</title>
+    </head>
+    <body>
+        Register form
+
+        <form method="post">
+            <input name="csrf_token" type="hidden" value="{{ csrf_token }}">
+            <p>Username</p>
+            <input name="username" />
+            <p>Password</p>
+            <input name="password" />
+            <button>Login</button>
+        </form>
+    </body>
+</html>

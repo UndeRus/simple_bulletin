@@ -57,17 +57,6 @@ impl From<&str> for AuthPermission {
     }
 }
 
-// impl From<&str> for AuthPermission {
-//     fn from(name: &str) -> Self {
-//         let level = match name {
-//             "user" => PermissionLevel::User,
-//             "admin" => PermissionLevel::Admin,
-//             _ => PermissionLevel::Anonymous,
-//         };
-//         AuthPermission { level }
-//     }
-// }
-
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     SQLError(sqlx::Error),
@@ -140,6 +129,9 @@ impl AuthzBackend for AuthBackend {
             where users.id = ?
             "#,
         ).bind(user.id).fetch_all(&self.db).await.map_err(|e|AuthError::SQLError(e))?;
-        Ok(permissions.into_iter().collect())
+
+        let result = permissions.into_iter().collect();
+        dbg!(&result);
+        Ok(result)
     }
 }

@@ -2,10 +2,11 @@ use askama::Template;
 use axum::{
     extract::{Path, Query}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form
 };
+use axum_csrf::CsrfToken;
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::{AuthBackend, Credentials}};
+use crate::{auth::{AuthBackend, Credentials}, db};
 
 #[derive(Deserialize)]
 pub struct NextUrl {
@@ -40,13 +41,12 @@ pub async fn login_with_password(
 
 #[derive(Template)]
 #[template(path = "login.html")]
-pub struct LoginFormTemplate<'a> {
-    name: &'a str,
+pub struct LoginFormTemplate {
+
 }
 
 pub async fn login_form() -> impl IntoResponse {
     let template = LoginFormTemplate {
-        name: "Here is login form",
     };
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response())
@@ -69,12 +69,40 @@ pub async fn mod_page() -> impl IntoResponse {
     "Mod page"
 }
 
-pub async fn register() -> impl IntoResponse {
-    "Register"
+
+
+
+pub async fn register(token: CsrfToken, Form(form): Form<RegisterForm>) -> impl IntoResponse {
+    if let Err(e) = token.verify(&form.csrf_token) {
+        // Wrong csrf
+        "Token is invalid"
+    } else {
+        // Token is valid, register
+        "Token is Valid lets do stuff!"
+    }
+
 }
 
-pub async fn register_form() -> impl IntoResponse {
-    "Register form"
+#[derive(Template)]
+#[template(path = "register.html")]
+pub struct RegisterFormTemplate<'a> {
+    csrf_token: &'a str,
+}
+
+
+#[derive(Deserialize)]
+pub struct RegisterForm {
+    pub csrf_token: String
+}
+
+pub async fn register_form(token: CsrfToken) -> impl IntoResponse {
+    let csrf_token = token.authenticity_token().unwrap();
+    let template = RegisterFormTemplate {
+        csrf_token: &csrf_token,
+    };
+    let reply_html = template.render().unwrap();
+
+    (token, Html(reply_html)).into_response()
 }
 
 pub async fn item_new() -> impl IntoResponse {

@@ -235,3 +235,26 @@ pub async fn check_advert_belong_to_user(user_id: i64, advert_id: i64) -> Result
 
     Ok(result.is_some())
 }
+
+pub async fn get_user_adverts(user_id: i64, offset: i64, limit: i64) -> Result<(Vec<Advert>, i64), ()> {
+    let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+
+    let result: Vec<Advert> = 
+        sqlx::query_as("SELECT * FROM adverts a JOIN users_adverts u ON a.id = u.advert_id WHERE u.user_id = ? ORDER BY ID DESC LIMIT ? OFFSET ?")
+            .bind(user_id)
+            .bind(limit)
+            .bind(offset)
+    .fetch_all(&db)
+    .await
+    .map_err(|e| {
+        println!("Failed to get user adverts: {}", e);
+        ()
+    })?;
+
+    let total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM adverts a JOIN users_adverts u ON a.id = u.advert_id WHERE u.user_id = ? ")
+    .bind(user_id)
+    .fetch_one(&db)
+    .await
+    .map_err(|_| ())?;
+    Ok((result, total_count))
+}

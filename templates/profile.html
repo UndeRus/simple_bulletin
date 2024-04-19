@@ -1,0 +1,41 @@
+<html>
+    <head>
+        <title>Profile</title>
+    </head>
+    <body>
+        <h1>Your adverts</h1>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Published</th>
+            </tr>
+            {% for advert in adverts %}
+            <tr>
+                <td><a href="/item/{{advert.id}}">#</a></td>
+                <td>{{advert.title}}</td>
+                <td><input type="checkbox" disabled {% if advert.published %}checked{% endif %}></td>
+            </tr>
+            {% endfor %}
+        </table>
+        <div>
+            {% if page > 1 %}
+                <a href="?page=1">First</a>
+                <a href="?page={{ page - 1 }}">Previous</a>
+            {% endif %}
+    
+            {% for p in 1..=total_pages %}
+                {% if p == page %}
+                    <span>{{ p }}</span>
+                {% else %}
+                    <a href="?page={{ p }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+    
+            {% if page < total_pages %}
+                <a href="?page={{ page + 1 }}">Next</a>
+                <a href="?page={{ total_pages }}">Last</a>
+            {% endif %}
+        </div>
+    </body>
+</html>

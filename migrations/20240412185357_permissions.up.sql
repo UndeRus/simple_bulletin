@@ -46,9 +46,9 @@ values (
     (select id from groups where name = 'users'),
     (select id from permissions where name = 'user.write')
 ), (
-    (select id from groups where name = 'superusers'),
+    (select id from groups where name = 'admins'),
     (select id from permissions where name = 'admin.read')
 ), (
-    (select id from groups where name = 'superusers'),
+    (select id from groups where name = 'admins'),
     (select id from permissions where name = 'admin.write')
 );

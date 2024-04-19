@@ -85,13 +85,3 @@ fn user_router() -> Router {
             "user.read"
         ))
 }
-
-#[cfg(test)]
-mod tests {
-    use axum_csrf::CsrfConfig;
-
-    #[test]
-    fn check_csrf_working() {
-        let csrf = CsrfConfig::default();
-    }
-}

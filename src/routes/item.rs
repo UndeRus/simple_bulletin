@@ -1,12 +1,12 @@
 use askama::Template;
 use axum::{
-    extract::{Path, Query}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form
+    extract::{Path}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form
 };
 use axum_csrf::CsrfToken;
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::{AuthBackend, Credentials}, db, models::Advert};
+use crate::{auth::{AuthBackend}, db, models::Advert};
 
 
 #[derive(Template)]

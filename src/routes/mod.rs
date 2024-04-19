@@ -7,5 +7,5 @@ mod moderator;
 pub use main_page::main_board;
 pub use auth::{login_form, login_with_password, logout, register, register_form};
 pub use profile::profile;
-pub use item::{item_new, item_new_form, item_page};
+pub use item::{item_new, item_new_form, item_page, item_page_edit};
 pub use moderator::{mod_page, mod_edit};

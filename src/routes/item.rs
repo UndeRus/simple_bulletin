@@ -18,13 +18,28 @@ use crate::{
 #[derive(Template)]
 #[template(path = "item.html")]
 pub struct ItemPageTemplate {
+    csrf_token: String,
     advert: Advert,
+    own_advert: bool,
+}
+
+pub async fn item_page_edit(
+    token: CsrfToken,    
+    Path(item_id): Path<i64>,
+) {
+    
 }
 
 pub async fn item_page(
+    token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Path(item_id): Path<i64>,
 ) -> impl IntoResponse {
+    let csrf_token = if let Ok(token) = token.authenticity_token() {
+        token
+    } else {
+        return "Failed to get csrf token".into_response();
+    };
 
     let user = auth_session.user.clone();
     let user_id = user.clone().map(|u|u.id);
@@ -42,7 +57,7 @@ pub async fn item_page(
     } else {
         false
     };
-    let advert = if let Ok(advert) =
+    let (advert, own_advert) = if let Ok(advert) =
         db::get_advert_by_id(user_id, item_id, is_admin).await
     {
         advert
@@ -50,7 +65,11 @@ pub async fn item_page(
         return "Not found".into_response();
     };
 
-    let template = ItemPageTemplate { advert };
+    let template = ItemPageTemplate {
+        csrf_token,
+         advert ,
+         own_advert,
+    };
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response()).into_response()
 }

@@ -45,6 +45,7 @@ async fn router() -> Router {
         .route("/register", get(routes::register_form))
         .route("/", get(routes::main_board))
         .route("/item/:id", get(routes::item_page))
+        .route("/item/:id", post(routes::item_page_edit))
         .layer(auth_layer)
         .layer(CsrfLayer::new(csrf_config))
 }

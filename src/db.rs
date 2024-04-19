@@ -97,12 +97,21 @@ pub async fn get_advert_by_id(
     user_id: Option<i64>,
     id: i64,
     is_admin: bool,
-) -> Result<Advert, ()> {
+) -> Result<(Advert, bool), ()> {
+
+    let mut is_own = false;
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
     let result: Option<Advert> = if is_admin { 
+        is_own = true;
         sqlx::query_as("SELECT * FROM adverts WHERE id = ?")
             .bind(id) 
     } else if let Some(user_id) = user_id {
+        let advert_user_id: i64 = sqlx::query_scalar("SELECT user_id FROM users_adverts WHERE advert_id = ?").bind(id).fetch_one(&db).await.map_err(|e| {
+            println!("Failed to get item user {}", e);
+            ()})?;
+
+            is_own = advert_user_id == user_id;
+
         sqlx::query_as("SELECT a.id, a.title, a.content, a.published FROM adverts a JOIN users_adverts ua ON a.id = ua.advert_id WHERE a.id = ? AND (a.published = true OR ua.user_id = ?)")
             .bind(id)
             .bind(user_id)
@@ -117,7 +126,7 @@ pub async fn get_advert_by_id(
         ()})?  ;
 
     
-    result.ok_or(())
+    result.map(|r|(r, is_own)).ok_or(())
 }
 
 pub async fn get_main_page(

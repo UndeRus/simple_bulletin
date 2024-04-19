@@ -1,0 +1,28 @@
+[package]
+name = "simple_bulletin"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "newadmin"
+path = "./src/newadmin.rs"
+
+
+[dependencies]
+anyerror = "0.1.12"
+anyhow = "1.0.82"
+askama = { version = "0.12.1" }
+askama_axum = "0.4.0"
+async-trait = "0.1.79"
+axum = "0.7.4"
+axum-login = "0.15.0"
+data-encoding = "2.5.0"
+password-auth = "1.0.0"
+ring = "0.17.8"
+serde = { version = "1.0.197", features = ["derive"] }
+sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio"] }
+thiserror = "1.0.58"
+tokio = { version = "1.37.0", features = ["full"] }
+tower-sessions = "0.12.1"
+uuid = { version = "1.8.0", features = ["v4"] }

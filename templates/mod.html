@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>Adverts</title>
+    </head>
+    <body>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Заголовок</th>
+                <th>Описание</th>
+            </tr>
+            {% for advert in adverts %}
+            <tr>
+                <td><a href="/item/{{advert.id}}">#</a></td>
+                <td>{{advert.title}}</td>
+                <td>{{advert.content|truncate(50)}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </body>
+</html>

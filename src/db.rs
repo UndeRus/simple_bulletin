@@ -33,9 +33,7 @@ pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
     Ok(db)
 }
 
-pub  async fn  create_new_user(db: &Pool<Sqlite>, username: &str, password: &str) -> Result<(), ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
+pub async fn create_new_user(db: &Pool<Sqlite>, username: &str, password: &str) -> Result<(), ()> {
     sqlx::query("INSERT INTO users(username, password_hash) VALUES(?, ?)")
         .bind(username)
         .bind(generate_hash(password))
@@ -58,8 +56,12 @@ pub  async fn  create_new_user(db: &Pool<Sqlite>, username: &str, password: &str
     Ok(())
 }
 
-pub async fn create_new_advert(db: &Pool<Sqlite>, user_id: i64, title: &str, content: &str) -> Result<i64, ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
+pub async fn create_new_advert(
+    db: &Pool<Sqlite>,
+    user_id: i64,
+    title: &str,
+    content: &str,
+) -> Result<i64, ()> {
     let advert_id = sqlx::query("INSERT INTO adverts(title, content) VALUES(?, ?)")
         .bind(title)
         .bind(content)
@@ -89,7 +91,6 @@ pub async fn get_advert_by_id(
     is_admin: bool,
 ) -> Result<(Advert, bool), ()> {
     let mut is_own = false;
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
     let result: Option<Advert> = if is_admin {
         is_own = true;
         sqlx::query_as("SELECT * FROM adverts WHERE id = ?")
@@ -117,9 +118,9 @@ pub async fn get_advert_by_id(
 
 pub async fn get_main_page(
     db: &Pool<Sqlite>,
-    limit: i64, offset: i64) -> Result<(Vec<Advert>, i64), ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<Advert>, i64), ()> {
     let result: Vec<Advert> = sqlx::query_as(
         "SELECT * FROM adverts WHERE published = true ORDER BY ID DESC LIMIT ? OFFSET ?",
     )
@@ -147,8 +148,6 @@ pub async fn get_mod_page(
     users_offset: i64,
     users_limit: i64,
 ) -> Result<((Vec<Advert>, i64), (Vec<User>, i64)), ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
     let advert_result: Vec<Advert> =
         sqlx::query_as("SELECT * FROM adverts ORDER BY ID DESC LIMIT ? OFFSET ?")
             .bind(adverts_limit)
@@ -184,9 +183,11 @@ pub async fn get_mod_page(
     ))
 }
 
-pub async fn toggle_advert_publish(db: &Pool<Sqlite>,advert_id: i64, published: bool) -> Result<(), ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
+pub async fn toggle_advert_publish(
+    db: &Pool<Sqlite>,
+    advert_id: i64,
+    published: bool,
+) -> Result<(), ()> {
     sqlx::query("UPDATE adverts SET published = ? WHERE id = ?")
         .bind(published)
         .bind(advert_id)
@@ -199,9 +200,7 @@ pub async fn toggle_advert_publish(db: &Pool<Sqlite>,advert_id: i64, published: 
     Ok(())
 }
 
-pub async fn toggle_user_active(db: &Pool<Sqlite>,user_id: i64, active: bool) -> Result<(), ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
+pub async fn toggle_user_active(db: &Pool<Sqlite>, user_id: i64, active: bool) -> Result<(), ()> {
     sqlx::query("UPDATE users SET active = ? WHERE id = ?")
         .bind(active)
         .bind(user_id)
@@ -214,9 +213,11 @@ pub async fn toggle_user_active(db: &Pool<Sqlite>,user_id: i64, active: bool) ->
     Ok(())
 }
 
-pub async fn check_advert_belong_to_user(db: &Pool<Sqlite>,user_id: i64, advert_id: i64) -> Result<bool, ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
+pub async fn check_advert_belong_to_user(
+    db: &Pool<Sqlite>,
+    user_id: i64,
+    advert_id: i64,
+) -> Result<bool, ()> {
     let result: Option<i64> = sqlx::query_scalar(
         "SELECT advert_id from users_adverts WHERE user_id = ? AND advert_id = ?",
     )
@@ -238,8 +239,6 @@ pub async fn get_user_adverts(
     offset: i64,
     limit: i64,
 ) -> Result<(Vec<Advert>, i64), ()> {
-    // let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-
     let result: Vec<Advert> = sqlx::query_as("SELECT * FROM adverts a JOIN users_adverts u ON a.id = u.advert_id WHERE u.user_id = ? ORDER BY ID DESC LIMIT ? OFFSET ?")
             .bind(user_id)
             .bind(limit)

@@ -11,7 +11,8 @@ use serde::Deserialize;
 use crate::{
     auth::{AuthBackend, AuthPermission},
     db,
-    models::Advert, AppState,
+    models::Advert,
+    AppState,
 };
 
 #[derive(Template)]
@@ -29,7 +30,7 @@ pub struct ItemEditForm {
 }
 
 pub async fn item_page_edit(
-    State(state): State<AppState>, 
+    State(state): State<AppState>,
     token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Path(advert_id): Path<i64>,
@@ -48,7 +49,10 @@ pub async fn item_page_edit(
     let db: tokio::sync::RwLockWriteGuard<'_, sqlx::Pool<sqlx::Sqlite>> = state.db.write().await;
     if let Ok(is_own_advert) = db::check_advert_belong_to_user(&db, user_id, advert_id).await {
         if is_own_advert {
-            if db::toggle_advert_publish(&db, advert_id, false).await.is_ok() {
+            if db::toggle_advert_publish(&db, advert_id, false)
+                .await
+                .is_ok()
+            {
                 return Redirect::to(&format!("/item/{}", advert_id)).into_response();
             } else {
                 return "Failed to unpublish advert".into_response();
@@ -62,7 +66,7 @@ pub async fn item_page_edit(
 }
 
 pub async fn item_page(
-    State(state): State<AppState>, 
+    State(state): State<AppState>,
     token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Path(item_id): Path<i64>,
@@ -116,7 +120,7 @@ pub struct ItemNewForm {
 }
 
 pub async fn item_new(
-    State(state): State<AppState>, 
+    State(state): State<AppState>,
     token: CsrfToken,
     auth_session: AuthSession<AuthBackend>,
     Form(form): Form<ItemNewForm>,

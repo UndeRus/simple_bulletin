@@ -1,6 +1,10 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::{Query, State}, http::StatusCode, response::Html};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::Html,
+};
 use axum_login::AuthSession;
 use serde::Deserialize;
 
@@ -33,7 +37,7 @@ pub async fn main_board(
 
     let db = state.db.read().await;
     let (adverts, total_count) =
-        if let Ok(adverts) = db::get_main_page(&db,MAIN_PAGE_LIMIT, offset).await {
+        if let Ok(adverts) = db::get_main_page(&db, MAIN_PAGE_LIMIT, offset).await {
             adverts
         } else {
             return "Main page error".into_response();

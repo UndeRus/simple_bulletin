@@ -24,7 +24,9 @@ async fn main() {
 }
 
 async fn create_new_admin(username: &str, password: &str) {
-    let db = db::create_db("simple_bulletin.db").await.expect("Failed to create db");
+    let db = db::create_db("simple_bulletin.db")
+        .await
+        .expect("Failed to create db");
 
     sqlx::query("INSERT INTO users(username, password_hash, active) VALUES(?, ?, ?)")
         .bind(username)

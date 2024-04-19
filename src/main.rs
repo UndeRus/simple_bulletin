@@ -1,7 +1,8 @@
 use std::{clone, sync::Arc};
 
 use axum::{
-    routing::{get, post}, Router
+    routing::{get, post},
+    Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer};
 use axum_login::{login_required, permission_required, AuthManagerLayerBuilder};
@@ -31,7 +32,7 @@ async fn main() {
 
 #[derive(Clone)]
 pub struct AppState {
-    db: Arc<RwLock<Pool<Sqlite>>>
+    db: Arc<RwLock<Pool<Sqlite>>>,
 }
 
 async fn router() -> Router {
@@ -46,14 +47,10 @@ async fn router() -> Router {
 
     let db = Arc::new(RwLock::new(db.clone()));
 
-    let state = AppState {
-        db: db.clone()
-    };
+    let state = AppState { db: db.clone() };
 
     let backend = AuthBackend::new(db);
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
-
-
 
     Router::new()
         .merge(mod_router())

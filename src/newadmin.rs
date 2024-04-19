@@ -1,5 +1,6 @@
 use password_auth::generate_hash;
 
+mod auth_models;
 mod db;
 mod models;
 

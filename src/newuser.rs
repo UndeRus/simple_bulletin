@@ -1,4 +1,5 @@
 mod db;
+mod auth_models;
 mod models;
 
 #[tokio::main]

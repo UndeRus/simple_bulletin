@@ -21,6 +21,7 @@ pub struct MainPageParams {
     pub after_id: Option<i64>,
 }
 
+//TODO: rework pagination
 pub async fn main_board(Query(params): Query<MainPageParams>) -> impl IntoResponse {
     let adverts = if let Ok(adverts) = db::get_main_page(MAIN_PAGE_LIMIT, params.before_id, params.after_id).await {
         adverts

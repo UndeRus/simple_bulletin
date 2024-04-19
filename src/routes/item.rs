@@ -15,8 +15,8 @@ pub struct ItemPageTemplate {
     advert: Advert,
 }
 
-pub async fn item_page(Path(item_id): Path<i64>) -> impl IntoResponse {
-    let advert = if let Ok(advert)  = db::get_advert_by_id(item_id, true).await {
+pub async fn item_page(auth_session: AuthSession<AuthBackend>, Path(item_id): Path<i64>) -> impl IntoResponse {
+    let advert = if let Ok(advert)  = db::get_advert_by_id(auth_session.user.map(|u|u.id), item_id, true).await {
         advert
     } else {
         return "Not found".into_response();

@@ -10,6 +10,7 @@ use tower_sessions::{MemoryStore, SessionManagerLayer};
 use crate::auth::AuthBackend;
 
 mod auth;
+mod auth_models;
 mod db;
 mod routes;
 mod models;
@@ -54,6 +55,7 @@ fn mod_router() -> Router {
             login_url = "/login",
             "admin.read"
         ))
+        .route("/mod", post(routes::mod_edit))
 }
 
 fn auth_router() -> Router {

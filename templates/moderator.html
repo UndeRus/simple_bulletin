@@ -1,0 +1,51 @@
+<html>
+    <head>
+        <title>Adverts</title>
+    </head>
+    <body>
+        <h2>Adverts</h2>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Заголовок</th>
+                <th>Описание</th>
+                <th>Опубликован</th>
+            </tr>
+            {% for advert in adverts %}
+            <tr>
+                <td><a href="/item/{{advert.id}}">#</a></td>
+                <td>{{advert.title}}</td>
+                <td>{{advert.content}}</td>
+                <td><input type="checkbox" disabled {% if advert.published %}checked{% endif %} /></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% if !first_ad_page %}
+        <a href="/mod?after_id_ad={{users.first().unwrap().id}}">Prev</a>
+        {% endif %}
+        {% if !last_ad_page %}
+        <a href="/mod?before_id_ad={{users.last().unwrap().id}}">Next</a>
+        {% endif %}
+        <h2>Users</h2>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Имя пользователя</th>
+                <th>Активен</th>
+            </tr>
+            {% for user in users %}
+            <tr>
+                <td>{{user.id}}</td>
+                <td>{{user.username}}</td>
+                <td><input type="checkbox" disabled {% if user.active %}checked{% endif %} /></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% if !first_user_page %}
+        <a href="/mod?after_id_user={{adverts.first().unwrap().id}}">Prev</a>
+        {% endif %}
+        {% if !last_user_page %}
+        <a href="/mod?before_id_user={{adverts.last().unwrap().id}}">Next</a>
+        {% endif %}
+    </body>
+</html>

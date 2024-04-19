@@ -32,7 +32,7 @@ async fn router() -> Router {
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store);
 
-    let db = db::create_db("simple_bulletin.db").await.unwrap();
+    let db = db::create_db("simple_bulletin.db").await.expect("Failed to create db");
 
     let backend = AuthBackend::new(db);
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();

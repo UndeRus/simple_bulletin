@@ -1,13 +1,19 @@
 use askama::Template;
 use axum::{
-    extract::{Path}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Form
+    extract::Path,
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect},
+    Form,
 };
 use axum_csrf::CsrfToken;
-use axum_login::AuthSession;
+use axum_login::{AuthSession, AuthzBackend};
 use serde::Deserialize;
 
-use crate::{auth::AuthBackend, db, models::Advert};
-
+use crate::{
+    auth::{AuthBackend, AuthPermission},
+    db,
+    models::Advert,
+};
 
 #[derive(Template)]
 #[template(path = "item.html")]
@@ -15,16 +21,36 @@ pub struct ItemPageTemplate {
     advert: Advert,
 }
 
-pub async fn item_page(auth_session: AuthSession<AuthBackend>, Path(item_id): Path<i64>) -> impl IntoResponse {
-    let advert = if let Ok(advert)  = db::get_advert_by_id(auth_session.user.map(|u|u.id), item_id).await {
+pub async fn item_page(
+    auth_session: AuthSession<AuthBackend>,
+    Path(item_id): Path<i64>,
+) -> impl IntoResponse {
+
+    let user = auth_session.user.clone();
+    let user_id = user.clone().map(|u|u.id);
+    let is_admin = if let Some(user) = user {
+        auth_session
+            .backend
+            .has_perm(
+                &user,
+                AuthPermission {
+                    name: "admin.read".to_string(),
+                },
+            )
+            .await
+            .unwrap_or(false)
+    } else {
+        false
+    };
+    let advert = if let Ok(advert) =
+        db::get_advert_by_id(user_id, item_id, is_admin).await
+    {
         advert
     } else {
         return "Not found".into_response();
     };
 
-    let template = ItemPageTemplate {
-        advert
-    };
+    let template = ItemPageTemplate { advert };
     let reply_html = template.render().unwrap();
     (StatusCode::OK, Html(reply_html).into_response()).into_response()
 }
@@ -36,7 +62,11 @@ pub struct ItemNewForm {
     pub csrf_token: String,
 }
 
-pub async fn item_new(token: CsrfToken, auth_session: AuthSession<AuthBackend>, Form(form): Form<ItemNewForm>) -> impl IntoResponse {
+pub async fn item_new(
+    token: CsrfToken,
+    auth_session: AuthSession<AuthBackend>,
+    Form(form): Form<ItemNewForm>,
+) -> impl IntoResponse {
     let user = if let Some(user) = auth_session.user {
         user
     } else {
@@ -46,11 +76,12 @@ pub async fn item_new(token: CsrfToken, auth_session: AuthSession<AuthBackend>, 
     if let Err(_e) = token.verify(&form.csrf_token) {
         return "Error".into_response();
     }
-    let new_advert_id = if let Ok(id) = db::create_new_advert(user.id, &form.title, &form.content).await {
-        id
-    } else {
-        return "Failed to create advert".into_response();
-    };
+    let new_advert_id =
+        if let Ok(id) = db::create_new_advert(user.id, &form.title, &form.content).await {
+            id
+        } else {
+            return "Failed to create advert".into_response();
+        };
 
     Redirect::to(&format!("/item/{}", new_advert_id)).into_response()
 }

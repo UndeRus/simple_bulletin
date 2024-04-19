@@ -1,6 +1,6 @@
 use crate::{auth_models::User, models::Advert};
 use password_auth::generate_hash;
-use sqlx::{migrate::MigrateDatabase, Pool, Sqlite, SqlitePool};
+use sqlx::{migrate::MigrateDatabase, sqlite::SqliteConnectOptions, Pool, Sqlite, SqlitePool};
 use std::env;
 
 pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
@@ -15,7 +15,8 @@ pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
     }
 
     // Connect to the database
-    let db = SqlitePool::connect(&db_url).await.map_err(|_| ())?;
+    let connect_options = SqliteConnectOptions::new().filename(&db_url);
+    let db = SqlitePool::connect_with(connect_options).await.map_err(|_| ())?;
 
     // Migrate the database
     let migrations = if env::var("RUST_ENV") == Ok("production".to_string()) {
@@ -95,9 +96,13 @@ pub async fn create_new_advert(user_id: i64, title: &str, content: &str) -> Resu
 pub async fn get_advert_by_id(
     user_id: Option<i64>,
     id: i64,
+    is_admin: bool,
 ) -> Result<Advert, ()> {
     let db = create_db("simple_bulletin.db").await.map_err(|_| ())?;
-    let result: Option<Advert> = if let Some(user_id) = user_id {
+    let result: Option<Advert> = if is_admin { 
+        sqlx::query_as("SELECT * FROM adverts WHERE id = ?")
+            .bind(id) 
+    } else if let Some(user_id) = user_id {
         sqlx::query_as("SELECT a.id, a.title, a.content, a.published FROM adverts a JOIN users_adverts ua ON a.id = ua.advert_id WHERE a.id = ? AND (a.published = true OR ua.user_id = ?)")
             .bind(id)
             .bind(user_id)

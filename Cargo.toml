@@ -25,6 +25,8 @@ axum = "0.7.4"
 axum-login = "0.15.0"
 axum_csrf = { version = "^0.9.0", features = ["layer"] }
 data-encoding = "2.5.0"
+env_logger = "0.11.3"
+log = "0.4.21"
 password-auth = "1.0.0"
 ring = "0.17.8"
 serde = { version = "1.0.197", features = ["derive"] }

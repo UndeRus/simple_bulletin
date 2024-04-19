@@ -1,6 +1,6 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::Query, http::StatusCode, response::{Html, Redirect}, Form};
+use axum::{extract::Query, response::{Html, Redirect}, Form};
 use axum_csrf::CsrfToken;
 use serde::Deserialize;
 

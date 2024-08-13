@@ -31,7 +31,7 @@
 Админа создаем вот так:
 
 ```bash
-  cargo run --release newadmin =u ADMIN_USERNAME
+  cargo run --release newadmin -u ADMIN_USERNAME
 ```
 
 Запускаем:

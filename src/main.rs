@@ -7,6 +7,7 @@ use axum::{
 use axum_csrf::{CsrfConfig, CsrfLayer};
 use axum_login::{login_required, permission_required, AuthManagerLayerBuilder};
 
+use routes::graphql_router;
 use sqlx::{Pool, Sqlite};
 use tokio::sync::RwLock;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
@@ -53,6 +54,7 @@ async fn router() -> Router {
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
     Router::new()
+        .nest("/gql", graphql_router(state.clone()))
         .merge(mod_router())
         .merge(auth_router())
         .merge(user_router())

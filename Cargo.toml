@@ -26,6 +26,8 @@ anyerror = "0.1.12"
 anyhow = "1.0.82"
 askama = { version = "0.12.1" }
 askama_axum = "0.4.0"
+async-graphql = "7.0.6"
+async-graphql-axum = "7.0.6"
 async-trait = "0.1.79"
 axum = "0.7.4"
 axum-login = "0.15.0"

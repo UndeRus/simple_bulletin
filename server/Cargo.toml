@@ -6,13 +6,6 @@ default-run = "simple_bulletin"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[profile.release]
-opt-level = 'z'  # Optimize for size.
-lto = true
-panic = 'abort'
-strip = true
-codegen-units = 1
-
 [[bin]]
 name = "newadmin"
 path = "./src/newadmin.rs"
@@ -43,3 +36,6 @@ thiserror = "1.0.58"
 tokio = { version = "1.37.0", features = ["full"] }
 tower-sessions = "0.12.1"
 uuid = { version = "1.8.0", features = ["v4"] }
+
+entities = { path = "../entities" }
+migration = { path = "../migration" }

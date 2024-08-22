@@ -1,0 +1,20 @@
+[package]
+name = "entities"
+version = "0.1.0"
+edition = "2021"
+
+#[lib]
+#name = "entities"
+#path = "src/mod.rs"
+
+[dependencies]
+sea-orm = { version = "1.0.0", features = [
+    "sqlx-sqlite",
+    "runtime-tokio-rustls",
+    "macros",
+    "debug-print",
+] }
+tokio = {version = "1.39.3", features = ["full"]}
+log = "0.4.22"
+tracing-subscriber = "0.3.18"
+tracing = "0.1.40"

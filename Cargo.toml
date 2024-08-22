@@ -1,5 +1,14 @@
 [workspace]
 resolver = "2"
-members = [
+members = [ 
+   #"entities",
    "server",
+   "migration",
 ]
+
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true
+panic = 'abort'
+strip = true
+codegen-units = 1

@@ -1,0 +1,45 @@
+[package]
+name = "simple_bulletin"
+version = "0.1.0"
+edition = "2021"
+default-run = "simple_bulletin"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true
+panic = 'abort'
+strip = true
+codegen-units = 1
+
+[[bin]]
+name = "newadmin"
+path = "./src/newadmin.rs"
+
+[[bin]]
+name = "newuser"
+path = "./src/newuser.rs"
+
+[dependencies]
+anyerror = "0.1.12"
+anyhow = "1.0.82"
+askama = { version = "0.12.1" }
+askama_axum = "0.4.0"
+async-trait = "0.1.79"
+axum = "0.7.4"
+axum-login = "0.15.0"
+axum_csrf = { version = "^0.9.0", features = ["layer"] }
+clap = { version = "4.5.4", features = ["derive"] }
+data-encoding = "2.5.0"
+env_logger = "0.11.3"
+log = "0.4.21"
+password-auth = "1.0.0"
+ring = "0.17.8"
+rpassword = "7.3.1"
+serde = { version = "1.0.197", features = ["derive"] }
+sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio"] }
+thiserror = "1.0.58"
+tokio = { version = "1.37.0", features = ["full"] }
+tower-sessions = "0.12.1"
+uuid = { version = "1.8.0", features = ["v4"] }

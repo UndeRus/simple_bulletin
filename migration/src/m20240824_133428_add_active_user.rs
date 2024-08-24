@@ -1,19 +1,19 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
+use crate::m20220101_000001_create_users::Users;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Replace the sample below with your own migration scripts
         manager
-            .create_table(
-                Table::create()
+            .alter_table(
+                Table::alter()
                     .table(Users::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Users::Id))
-                    .col(string(Users::Username))
-                    .col(string(Users::PasswordHash))
+                    .add_column_if_not_exists(boolean(Users::Active).default(false))
                     .to_owned(),
             )
             .await
@@ -21,17 +21,12 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Users::Table).to_owned())
+            .alter_table(
+                Table::alter()
+                    .table(Users::Table)
+                    .drop_column(Users::Active)
+                    .to_owned(),
+            )
             .await
     }
-}
-
-#[derive(DeriveIden)]
-pub enum Users {
-    Table,
-    Id,
-    Username,
-    #[sea_orm(iden = "password_hash")]
-    PasswordHash,
-    Active,
 }

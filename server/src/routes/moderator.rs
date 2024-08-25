@@ -8,7 +8,7 @@ use axum::{
 use axum_csrf::CsrfToken;
 use serde::Deserialize;
 
-use crate::{auth_models::User, db, models::Advert, AppState};
+use crate::{auth_models::User, db, db_orm, models::Advert, AppState};
 
 const ADVERTS_LIMIT: i64 = 10;
 const USERS_LIMIT: i64 = 10;
@@ -117,14 +117,13 @@ pub async fn mod_edit(
     if token.verify(&form.csrf_token).is_err() {
         return "Failed to verify csrf".into_response();
     }
-
-    let db = state.db.write().await;
+    let db1 = state.db1.write().await;
 
     let result = match form.action.as_str() {
-        ACTIVATE_USER_ACTION => db::toggle_user_active(&db, form.id, true).await,
-        DEACTIVATE_USER_ACTION => db::toggle_user_active(&db, form.id, false).await,
-        PUBLISH_ADVERT_ACTION => db::toggle_advert_publish(&db, form.id, true).await,
-        UNPUBLISH_ADVERT_ACTION => db::toggle_advert_publish(&db, form.id, false).await,
+        ACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db1, form.id, true).await,
+        DEACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db1, form.id, false).await,
+        PUBLISH_ADVERT_ACTION => db_orm::toggle_advert_publish(&db1, form.id, true).await,
+        UNPUBLISH_ADVERT_ACTION => db_orm::toggle_advert_publish(&db1, form.id, false).await,
         _ => Err(()),
     };
     if result.is_ok() {

@@ -9,10 +9,7 @@ use axum_login::{AuthSession, AuthzBackend};
 use serde::Deserialize;
 
 use crate::{
-    auth::{AuthBackend, AuthPermission},
-    db,
-    models::Advert,
-    AppState,
+    auth::{AuthBackend, AuthPermission}, db, db_orm, models::Advert, AppState
 };
 
 #[derive(Template)]
@@ -94,9 +91,9 @@ pub async fn item_page(
     } else {
         false
     };
-    let db = state.db.read().await;
+    let db = state.db1.read().await;
     let (advert, own_advert) =
-        if let Ok(advert) = db::get_advert_by_id(&db, user_id, item_id, is_admin).await {
+        if let Ok(advert) = db_orm::get_advert_by_id(&db, user_id, item_id, is_admin).await {
             advert
         } else {
             return "Not found".into_response();

@@ -3,9 +3,9 @@ name = "entities"
 version = "0.1.0"
 edition = "2021"
 
-#[lib]
-#name = "entities"
-#path = "src/mod.rs"
+[lib]
+name = "entities"
+path = "src/mod.rs"
 
 [dependencies]
 sea-orm = { version = "1.0.0", features = [

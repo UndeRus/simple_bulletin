@@ -7,6 +7,8 @@ use axum::{
 use axum_csrf::{CsrfConfig, CsrfLayer};
 use axum_login::{login_required, permission_required, AuthManagerLayerBuilder};
 
+use db_orm::get_db;
+use sea_orm::DatabaseConnection;
 use sqlx::{Pool, Sqlite};
 use tokio::sync::RwLock;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
@@ -16,6 +18,7 @@ use crate::auth::AuthBackend;
 mod auth;
 mod auth_models;
 mod db;
+mod db_orm;
 mod models;
 mod routes;
 
@@ -33,6 +36,8 @@ async fn main() {
 #[derive(Clone)]
 pub struct AppState {
     db: Arc<RwLock<Pool<Sqlite>>>,
+
+    db1: Arc<RwLock<DatabaseConnection>>,
 }
 
 async fn router() -> Router {
@@ -44,10 +49,15 @@ async fn router() -> Router {
     let db = db::create_db("simple_bulletin.db")
         .await
         .expect("Failed to create db");
+    let db1 = get_db("sqlite://simple_bulletin.db").await;
+    let db1 = Arc::new(RwLock::new(db1));
 
     let db = Arc::new(RwLock::new(db.clone()));
 
-    let state = AppState { db: db.clone() };
+    let state = AppState { 
+        db: db.clone(),
+        db1: db1.clone(),
+     };
 
     let backend = AuthBackend::new(db);
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();

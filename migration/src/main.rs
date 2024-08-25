@@ -5,7 +5,7 @@ use sea_orm_migration::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    let mut opt = ConnectOptions::new("sqlite://test_database.db?mode=rwc");
+    let mut opt = ConnectOptions::new("sqlite://simple_bulletin.db?mode=rwc");
     opt.max_connections(100)
         .min_connections(5)
         .connect_timeout(Duration::from_secs(8))

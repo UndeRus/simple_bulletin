@@ -257,9 +257,3 @@ pub async fn get_user_adverts(
     .map_err(|_| ())?;
     Ok((result, total_count))
 }
-
-
-#[cfg(seaorm)]
-fn seaorm_demo() {
-    
-}

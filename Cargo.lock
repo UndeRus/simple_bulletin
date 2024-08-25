@@ -2420,6 +2420,7 @@ dependencies = [
  "password-auth",
  "ring",
  "rpassword",
+ "sea-orm",
  "serde",
  "sqlx",
  "thiserror",

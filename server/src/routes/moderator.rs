@@ -55,17 +55,16 @@ pub async fn mod_page(
     let user_page = params.user_page.unwrap_or(1);
     let adverts_per_page = ADVERTS_LIMIT;
     let users_per_page = USERS_LIMIT;
-    let adverts_offset = (advert_page - 1) * adverts_per_page;
-    let users_offset = (user_page - 1) * users_per_page;
 
-    let db = state.db.read().await;
-    let ((adverts, adverts_total_count), (users, users_total_count)) = if let Ok((adverts, users)) =
-        db::get_mod_page(
+    let db = state.db1.read().await;
+
+    let ((adverts, total_advert_pages), (users, total_user_pages)) = if let Ok((adverts, users)) =
+        db_orm::get_mod_page(
             &db,
-            adverts_offset,
-            ADVERTS_LIMIT,
-            users_offset,
-            USERS_LIMIT,
+            (advert_page - 1) as u64,
+            adverts_per_page,
+            (user_page - 1) as u64,
+            users_per_page,
         )
         .await
     {
@@ -73,9 +72,6 @@ pub async fn mod_page(
     } else {
         return "Failed to load mod page info".into_response();
     };
-
-    let total_advert_pages = (adverts_total_count as f64 / adverts_per_page as f64).ceil() as i64;
-    let total_user_pages = (users_total_count as f64 / users_per_page as f64).ceil() as i64;
 
     let template = ModeratorPageTemplate {
         csrf_token,
@@ -117,13 +113,13 @@ pub async fn mod_edit(
     if token.verify(&form.csrf_token).is_err() {
         return "Failed to verify csrf".into_response();
     }
-    let db1 = state.db1.write().await;
+    let db = state.db1.write().await;
 
     let result = match form.action.as_str() {
-        ACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db1, form.id, true).await,
-        DEACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db1, form.id, false).await,
-        PUBLISH_ADVERT_ACTION => db_orm::toggle_advert_publish(&db1, form.id, true).await,
-        UNPUBLISH_ADVERT_ACTION => db_orm::toggle_advert_publish(&db1, form.id, false).await,
+        ACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db, form.id, true).await,
+        DEACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db, form.id, false).await,
+        PUBLISH_ADVERT_ACTION => db_orm::toggle_advert_publish(&db, form.id, true).await,
+        UNPUBLISH_ADVERT_ACTION => db_orm::toggle_advert_publish(&db, form.id, false).await,
         _ => Err(()),
     };
     if result.is_ok() {

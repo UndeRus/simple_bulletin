@@ -43,10 +43,11 @@ pub async fn item_page_edit(
         return "No user found".into_response();
     };
 
-    let db: tokio::sync::RwLockWriteGuard<'_, sqlx::Pool<sqlx::Sqlite>> = state.db.write().await;
-    if let Ok(is_own_advert) = db::check_advert_belong_to_user(&db, user_id, advert_id).await {
+    let db = state.db1.write().await;
+
+    if let Ok(is_own_advert) = db_orm::check_advert_belong_to_user(&db, user_id, advert_id).await {
         if is_own_advert {
-            if db::toggle_advert_publish(&db, advert_id, false)
+            if db_orm::toggle_advert_publish(&db, advert_id, false)
                 .await
                 .is_ok()
             {

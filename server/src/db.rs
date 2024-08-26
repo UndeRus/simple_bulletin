@@ -84,6 +84,7 @@ pub async fn create_new_advert(
     Ok(new_advert_id)
 }
 
+#[deprecated]
 pub async fn get_advert_by_id(
     db: &Pool<Sqlite>,
     user_id: Option<i64>,
@@ -116,6 +117,7 @@ pub async fn get_advert_by_id(
     result.map(|r| (r, is_own)).ok_or(())
 }
 
+#[deprecated]
 pub async fn get_main_page(
     db: &Pool<Sqlite>,
     limit: i64,
@@ -141,6 +143,7 @@ pub async fn get_main_page(
     Ok((result, total_count))
 }
 
+#[deprecated]
 pub async fn get_mod_page(
     db: &Pool<Sqlite>,
     adverts_offset: i64,
@@ -183,6 +186,7 @@ pub async fn get_mod_page(
     ))
 }
 
+#[deprecated]
 pub async fn toggle_advert_publish(
     db: &Pool<Sqlite>,
     advert_id: i64,
@@ -200,6 +204,7 @@ pub async fn toggle_advert_publish(
     Ok(())
 }
 
+#[deprecated]
 pub async fn toggle_user_active(db: &Pool<Sqlite>, user_id: i64, active: bool) -> Result<(), ()> {
     sqlx::query("UPDATE users SET active = ? WHERE id = ?")
         .bind(active)

@@ -8,7 +8,7 @@ use axum::{
 use axum_csrf::CsrfToken;
 use serde::Deserialize;
 
-use crate::{auth_models::User, db, db_orm, models::Advert, AppState};
+use crate::{auth_models::User, db_orm, models::Advert, AppState};
 
 const ADVERTS_LIMIT: i64 = 10;
 const USERS_LIMIT: i64 = 10;

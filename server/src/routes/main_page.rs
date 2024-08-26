@@ -8,7 +8,7 @@ use axum::{
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::AuthBackend, db, models::Advert, AppState};
+use crate::{auth::AuthBackend, db_orm, models::Advert, AppState};
 
 const MAIN_PAGE_LIMIT: i64 = 10;
 
@@ -33,16 +33,13 @@ pub async fn main_board(
 ) -> impl IntoResponse {
     let page = params.page.unwrap_or(1);
     let per_page = MAIN_PAGE_LIMIT;
-    let offset = (page - 1) * per_page;
-
-    let db = state.db.read().await;
-    let (adverts, total_count) =
-        if let Ok(adverts) = db::get_main_page(&db, MAIN_PAGE_LIMIT, offset).await {
+    let db = state.db1.read().await;
+    let (adverts, total_pages) =
+        if let Ok(adverts) = db_orm::get_main_page(&db, per_page, page - 1).await {
             adverts
         } else {
             return "Main page error".into_response();
         };
-    let total_pages = (total_count as f64 / per_page as f64).ceil() as i64;
 
     let logged_in = auth_session.user.is_some();
     let template = MainPageTemplate {

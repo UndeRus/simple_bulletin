@@ -146,6 +146,35 @@ pub async fn get_mod_page(
     ))
 }
 
+pub async fn check_advert_belong_to_user(
+    db: &DatabaseConnection,
+    user_id: i64,
+    advert_id: i64,
+) -> Result<bool, ()> {
+    let advert = prelude::Adverts::find_by_id(advert_id as i32)
+        .one(db)
+        .await
+        .map_err(|_| ())?
+        .ok_or(())?;
+    let advert_user = advert
+        .find_related(prelude::Users)
+        .one(db)
+        .await
+        .map_err(|_| ())?
+        .ok_or((()))?;
+    Ok(advert_user.id == user_id as i32)
+}
+
+pub async fn get_main_page(
+    db: &DatabaseConnection,
+    limit: i64,
+    page: i64,
+) -> Result<(Vec<Advert>, i64), ()> {
+    let paginator = prelude::Adverts::find().filter(adverts::Column::Published.eq(true)).order_by_desc(adverts::Column::Id).paginate(db, limit as u64);
+    let pages = paginator.num_pages().await.map_err(|_|())? as i64;
+    let adverts: Vec<Advert> = paginator.fetch_page(page as u64).await.map_err(|_|())?.iter().map(|a|map_advert(a)).collect();
+    Ok((adverts, pages))
+}
 /*
 #[cfg(test)]
 mod tests {

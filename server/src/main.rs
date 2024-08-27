@@ -43,7 +43,7 @@ async fn router() -> Router {
 
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store);
-    let db = get_db("sqlite://simple_bulletin.db")
+    let db = get_db("sqlite://simple_bulletin.db?mode=rwc")
         .await
         .expect("Failed to connect db");
     let db = Arc::new(RwLock::new(db));

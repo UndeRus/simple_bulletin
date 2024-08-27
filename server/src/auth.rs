@@ -41,7 +41,6 @@ impl From<&str> for AuthPermission {
 
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
-    SQLError(sqlx::Error),
     ORMError,
     WrongCreds,
 }

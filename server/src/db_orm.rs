@@ -14,6 +14,7 @@ use sea_orm::{
     RelationTrait,
 };
 use tokio::task;
+use sea_orm_migration::prelude::*;
 
 use crate::auth::AuthPermission;
 use crate::auth_models::User;
@@ -34,8 +35,11 @@ pub async fn get_db(uri: &str) -> Result<DatabaseConnection, ()> {
     let db = Database::connect(opt).await.map_err(|e| {
         println!("Failed to create database {}", e);
         ()
-    });
-    return db;
+    })?;
+    migration::Migrator::up(&db, None)
+        .await
+        .expect("Failed to migrate");
+    return Ok(db);
 }
 
 fn map_advert(advert: &adverts::Model) -> Advert {
@@ -368,7 +372,7 @@ pub async fn create_new_admin(
     let new_user = users::ActiveModel {
         username: Set(username.to_owned()),
         password_hash: Set(generate_hash(password)),
-        active: Set(false),
+        active: Set(true),
         ..Default::default()
     };
 

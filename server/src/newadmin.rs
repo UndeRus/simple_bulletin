@@ -25,7 +25,7 @@ async fn main() {
 }
 
 async fn create_new_admin(username: &str, password: &str) {
-    let db = db_orm::get_db("simple_bulletin.db")
+    let db = db_orm::get_db("sqlite://simple_bulletin.db")
         .await
         .expect("Failed to created db");
     db_orm::create_new_admin(&db, username, password)

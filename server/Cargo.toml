@@ -45,3 +45,5 @@ uuid = { version = "1.8.0", features = ["v4"] }
 
 entities = { path = "../entities" }
 migration = { path = "../migration" }
+tracing-subscriber = "0.3.18"
+tracing = "0.1.40"

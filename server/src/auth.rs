@@ -2,21 +2,22 @@ use std::{collections::HashSet, fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 use axum_login::{AuthnBackend, AuthzBackend, UserId};
-use password_auth::verify_password;
+use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use sqlx::{FromRow, Pool, Sqlite};
-use tokio::{sync::RwLock, task};
+use tokio::sync::RwLock;
 
-use crate::auth_models::User;
+use crate::{auth_models::User, db_orm};
 
 #[derive(Clone)]
 pub struct AuthBackend {
     pub db: Arc<RwLock<Pool<Sqlite>>>,
+    pub db1: Arc<RwLock<DatabaseConnection>>,
 }
 
 impl AuthBackend {
-    pub fn new(db: Arc<RwLock<Pool<Sqlite>>>) -> Self {
-        Self { db }
+    pub fn new(db: Arc<RwLock<Pool<Sqlite>>>, db1: Arc<RwLock<DatabaseConnection>>) -> Self {
+        Self { db, db1 }
     }
 }
 
@@ -43,6 +44,7 @@ impl From<&str> for AuthPermission {
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     SQLError(sqlx::Error),
+    ORMError,
     WrongCreds,
 }
 
@@ -62,38 +64,21 @@ impl AuthnBackend for AuthBackend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let db = self.db.read().await;
-        let user: Option<Self::User> = sqlx::query_as("select * from users where username = ? ")
-            .bind(creds.username)
-            .fetch_optional(&*db)
-            .await
-            .map_err(|e| {
-                println!("SQL Error {}", e);
-                AuthError::SQLError(e)
-            })?;
+        let db = self.db1.read().await;
 
-        task::spawn_blocking(move || {
-            // We're using password-based authentication--this works by comparing our form
-            // input with an argon2 password hash.
-            Ok(user.filter(|user| {
-                let is_ok = verify_password(&creds.password, &user.password_hash).is_ok();
-                is_ok
-            }))
-        })
-        .await
-        .map_err(|_| {
-            println!("Wrong creds");
-            AuthError::WrongCreds
-        })?
+        db_orm::check_user(&db, &creds.username, &creds.password)
+            .await
+            .map_err(|_| {
+                println!("Wrong creds");
+                AuthError::WrongCreds
+            })
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
-        let db = self.db.read().await;
-        let user = sqlx::query_as("select * from users where id = ? AND active = TRUE")
-            .bind(user_id)
-            .fetch_optional(&*db)
+        let db = self.db1.read().await;
+        let user = db_orm::get_active_user_by_id(&db, *user_id as i32)
             .await
-            .map_err(|e| AuthError::SQLError(e))?;
+            .map_err(|_| AuthError::ORMError)?;
         Ok(user)
     }
 }
@@ -106,25 +91,10 @@ impl AuthzBackend for AuthBackend {
         &self,
         user: &Self::User,
     ) -> Result<HashSet<Self::Permission>, Self::Error> {
-        let db = self.db.read().await;
-        let permissions: Vec<Self::Permission> = sqlx::query_as(
-            r#"
-            select distinct permissions.name
-            from users
-            join users_groups on users.id = users_groups.user_id
-            join groups_permissions on users_groups.group_id = groups_permissions.group_id
-            join permissions on groups_permissions.permission_id = permissions.id
-            where users.id = ? AND users.active = TRUE
-            "#,
-        )
-        .bind(user.id)
-        .fetch_all(&*db)
-        .await
-        .map_err(|e| {
-            dbg!(&e);
-            AuthError::SQLError(e)
-        })?;
+        let db = self.db1.read().await;
 
-        Ok(permissions.into_iter().collect())
+        db_orm::get_active_user_permissions(&db, user.id as i32)
+            .await
+            .map_err(|_| AuthError::ORMError)
     }
 }

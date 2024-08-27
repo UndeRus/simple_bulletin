@@ -2426,6 +2426,8 @@ dependencies = [
  "thiserror",
  "tokio",
  "tower-sessions",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 

@@ -8,7 +8,7 @@ use axum_csrf::CsrfToken;
 use axum_login::AuthSession;
 use serde::Deserialize;
 
-use crate::{auth::AuthBackend, db, models::Advert, AppState};
+use crate::{auth::AuthBackend, db, db_orm, models::Advert, AppState};
 
 const PROFILE_PAGE_LIMIT: i64 = 10;
 
@@ -43,8 +43,9 @@ pub async fn profile(
     let offset = (page - 1) * per_page;
 
     let db = state.db.read().await;
+    let db1 = state.db1.read().await;
     let (adverts, total_count) = if let Ok((adverts, total_count)) =
-        db::get_user_adverts(&db, user.id, offset, per_page).await
+        db_orm::get_user_adverts(&db1, user.id, offset, per_page).await
     {
         (adverts, total_count)
     } else {

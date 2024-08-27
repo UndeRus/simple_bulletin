@@ -8,6 +8,7 @@ use axum_csrf::{CsrfConfig, CsrfLayer};
 use axum_login::{login_required, permission_required, AuthManagerLayerBuilder};
 
 use db_orm::get_db;
+use env_logger::init;
 use sea_orm::DatabaseConnection;
 use sqlx::{Pool, Sqlite};
 use tokio::sync::RwLock;
@@ -24,7 +25,9 @@ mod routes;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    //env_logger::init();
+    tracing_subscriber::fmt().init();
+
 
     let app = router();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -59,7 +62,7 @@ async fn router() -> Router {
         db1: db1.clone(),
      };
 
-    let backend = AuthBackend::new(db);
+    let backend = AuthBackend::new(db, db1);
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
     Router::new()

@@ -10,8 +10,7 @@ use axum_login::AuthSession;
 use serde::Deserialize;
 
 use crate::{
-    auth::{AuthBackend, Credentials},
-    db, AppState,
+    auth::{AuthBackend, Credentials}, db_orm, AppState
 };
 
 #[derive(Deserialize)]
@@ -70,9 +69,9 @@ pub async fn register(
     if let Err(_e) = token.verify(&form.csrf_token) {
         "Error".into_response()
     } else {
-        let db = state.db.write().await;
+        let db = state.db1.write().await;
         // Token is valid, register
-        if let Ok(_) = db::create_new_user(&db, &form.username, &form.password).await {
+        if let Ok(_) = db_orm::create_new_user(&db, &form.username, &form.password).await {
             Redirect::to("/").into_response()
         } else {
             "Failed to register".into_response()

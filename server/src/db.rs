@@ -33,6 +33,7 @@ pub async fn create_db(db_url: &str) -> Result<Pool<Sqlite>, ()> {
     Ok(db)
 }
 
+#[deprecated]
 pub async fn create_new_user(db: &Pool<Sqlite>, username: &str, password: &str) -> Result<(), ()> {
     sqlx::query("INSERT INTO users(username, password_hash) VALUES(?, ?)")
         .bind(username)

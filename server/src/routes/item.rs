@@ -132,9 +132,10 @@ pub async fn item_new(
     if let Err(_e) = token.verify(&form.csrf_token) {
         return "Error".into_response();
     }
-    let db = state.db.write().await;
+    //let db = state.db.write().await;
+    let db1 = state.db1.write().await;
     let new_advert_id =
-        if let Ok(id) = db::create_new_advert(&db, user.id, &form.title, &form.content).await {
+        if let Ok(id) = db_orm::create_new_advert(&db1, user.id, &form.title, &form.content).await {
             id
         } else {
             return "Failed to create advert".into_response();

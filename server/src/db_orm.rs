@@ -1,15 +1,21 @@
+use std::collections::HashSet;
 use std::time::Duration;
 
 use entities::{adverts, prelude::Adverts};
-use entities::{prelude, users};
+use entities::{
+    groups, groups_permissions, permissions, prelude, users, users_adverts, users_groups,
+};
 use migration::sea_orm::Database;
-use sea_orm::ActiveModelTrait;
+use password_auth::{generate_hash, verify_password};
+use sea_orm::{ActiveModelTrait, QuerySelect, TransactionTrait};
 use sea_orm::{ColumnTrait, ModelTrait, Set};
 use sea_orm::{
-    ConnectOptions, DatabaseConnection, EntityOrSelect, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    ConnectOptions, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, RelationTrait,
 };
+use tokio::task;
 
+use crate::auth::AuthPermission;
 use crate::auth_models::User;
 use crate::models::Advert;
 
@@ -57,7 +63,7 @@ pub async fn get_advert_by_id(
         .filter(adverts::Column::Id.eq(id))
         .one(db)
         .await
-        .map_err(|e| ());
+        .map_err(|_| ());
     if let Ok(Some(advert)) = advert {
         let advert_user = advert.find_related(prelude::Users).one(db).await;
         if let Ok(Some(advert_user)) = advert_user {
@@ -161,7 +167,7 @@ pub async fn check_advert_belong_to_user(
         .one(db)
         .await
         .map_err(|_| ())?
-        .ok_or((()))?;
+        .ok_or(())?;
     Ok(advert_user.id == user_id as i32)
 }
 
@@ -170,33 +176,182 @@ pub async fn get_main_page(
     limit: i64,
     page: i64,
 ) -> Result<(Vec<Advert>, i64), ()> {
-    let paginator = prelude::Adverts::find().filter(adverts::Column::Published.eq(true)).order_by_desc(adverts::Column::Id).paginate(db, limit as u64);
-    let pages = paginator.num_pages().await.map_err(|_|())? as i64;
-    let adverts: Vec<Advert> = paginator.fetch_page(page as u64).await.map_err(|_|())?.iter().map(|a|map_advert(a)).collect();
+    let paginator = prelude::Adverts::find()
+        .filter(adverts::Column::Published.eq(true))
+        .order_by_desc(adverts::Column::Id)
+        .paginate(db, limit as u64);
+    let pages = paginator.num_pages().await.map_err(|_| ())? as i64;
+    let adverts: Vec<Advert> = paginator
+        .fetch_page(page as u64)
+        .await
+        .map_err(|_| ())?
+        .iter()
+        .map(|a| map_advert(a))
+        .collect();
     Ok((adverts, pages))
 }
-/*
-#[cfg(test)]
-mod tests {
-    use super::{get_advert_by_id, get_db};
 
-    #[tokio::test]
-    async fn connect_db() {
-        env_logger::init();
+pub async fn create_new_advert(
+    db: &DatabaseConnection,
+    user_id: i64,
+    title: &str,
+    content: &str,
+) -> Result<i64, ()> {
+    let new_advert = adverts::ActiveModel {
+        title: Set(title.to_owned()),
+        content: Set(content.to_owned()),
+        ..Default::default()
+    };
 
-        let db = get_db("sqlite://../simple_bulletin.db").await;
+    let txn = db.begin().await.map_err(|e| {
+        println!("Failed to create advert start transaction {}", e);
+        ()
+    })?;
 
-        let advert = get_advert_by_id(&db, Some(2), 1, false).await;
-        assert!(advert.is_ok());
-        assert!(advert.unwrap().1 == true);
+    let advert = new_advert.insert(db).await.map_err(|e| {
+        println!("Failed to create advert {}", e);
+        ()
+    })?;
 
-        let advert = get_advert_by_id(&db, None, 1, false).await;
-        assert!(advert.is_ok());
-        assert!(advert.unwrap().1 == false);
+    let advert_id = advert.id;
 
-        let advert = get_advert_by_id(&db, None, 1, true).await;
-        assert!(advert.is_ok());
-        assert!(advert.unwrap().1 == true);
-    }
+    let new_advert_user = users_adverts::ActiveModel {
+        advert_id: Set(advert_id),
+        user_id: Set(user_id as i32),
+    };
+
+    new_advert_user.insert(db).await.map_err(|e| {
+        println!("Failed to create advert create relation {}", e);
+        ()
+    })?;
+
+    txn.commit().await.map_err(|e| {
+        println!("Failed to create advert finish transaction {}", e);
+        ()
+    })?;
+
+    Ok(advert_id.into())
 }
-*/
+
+pub async fn get_user_adverts(
+    db: &DatabaseConnection,
+    user_id: i64,
+    page: i64,
+    limit: i64,
+) -> Result<(Vec<Advert>, i64), ()> {
+    let adverts_paginator = prelude::Adverts::find()
+        .join(
+            sea_orm::JoinType::Join,
+            adverts::Relation::UsersAdverts.def(),
+        )
+        .filter(users_adverts::Column::UserId.eq(user_id))
+        .order_by_desc(adverts::Column::Id)
+        .paginate(db, limit as u64);
+    let result: Vec<Advert> = adverts_paginator
+        .fetch_page(page as u64)
+        .await
+        .map_err(|_| ())?
+        .iter()
+        .map(|a| map_advert(a))
+        .collect();
+    let pages = adverts_paginator.num_pages().await.map_err(|_| ())?;
+    Ok((result, pages as i64))
+}
+
+pub async fn create_new_user(
+    db: &DatabaseConnection,
+    username: &str,
+    password: &str,
+) -> Result<(), ()> {
+    let txn = db.begin().await.map_err(|_| ())?;
+    let new_user = users::ActiveModel {
+        username: Set(username.to_owned()),
+        password_hash: Set(generate_hash(password)),
+        active: Set(false),
+        ..Default::default()
+    };
+
+    let new_user_model = new_user.insert(&txn).await.map_err(|_| ())?;
+
+    let user_group = prelude::Groups::find()
+        .filter(groups::Column::Name.eq("users"))
+        .one(db)
+        .await
+        .map_err(|_| ())?
+        .ok_or(())?;
+
+    let new_user_id = new_user_model.id.clone();
+    let new_user_group = users_groups::ActiveModel {
+        user_id: Set(new_user_id),
+        group_id: Set(user_group.id),
+    };
+    new_user_group.insert(&txn).await.map_err(|_| ())?;
+    txn.commit().await.map_err(|_| ())?;
+    Ok(())
+}
+
+pub async fn check_user<'a>(
+    db: &DatabaseConnection,
+    username: &str,
+    password: &'a str,
+) -> Result<Option<User>, ()> {
+    let user = prelude::Users::find()
+        .filter(users::Column::Username.eq(username))
+        .one(db)
+        .await
+        .map_err(|_| ())?;
+
+    let password = password.to_owned();
+
+    task::spawn_blocking(move || {
+        Ok(user
+            .filter(|u| {
+                let is_ok = verify_password(password, &u.password_hash).is_ok();
+                is_ok
+            })
+            .map(|u| map_user(&u)))
+    })
+    .await
+    .map_err(|_| ())?
+}
+
+pub async fn get_active_user_by_id(
+    db: &DatabaseConnection,
+    user_id: i32,
+) -> Result<Option<User>, ()> {
+    let result = prelude::Users::find_by_id(user_id)
+        .one(db)
+        .await
+        .map_err(|_| ())?;
+
+    Ok(result.map(|u| map_user(&u)))
+}
+
+pub async fn get_active_user_permissions(
+    db: &DatabaseConnection,
+    user_id: i32,
+) -> Result<HashSet<AuthPermission>, ()> {
+    let permissions: HashSet<AuthPermission> = prelude::Permissions::find()
+        .join(
+            sea_orm::JoinType::Join,
+            permissions::Relation::GroupsPermissions.def(),
+        )
+        .join(
+            sea_orm::JoinType::Join,
+            groups_permissions::Relation::Groups.def(),
+        )
+        .join(sea_orm::JoinType::Join, groups::Relation::UsersGroups.def())
+        .join(sea_orm::JoinType::Join, users_groups::Relation::Users.def())
+        .filter(users_groups::Column::UserId.eq(user_id))
+        .filter(users::Column::Active.eq(true))
+        .all(db)
+        .await
+        .map_err(|e| {
+            println!("Failed to fetch permissions {}", e);
+            ()
+        })?
+        .iter()
+        .map(|m| AuthPermission::from(m.name.as_ref()))
+        .collect();
+    Ok(permissions)
+}

@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 
-#[derive(Deserialize, Serialize, Debug, Clone, FromRow)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Advert {
     pub id: i64,
     pub title: String,

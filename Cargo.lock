@@ -2423,7 +2423,6 @@ dependencies = [
  "sea-orm",
  "sea-orm-migration",
  "serde",
- "sqlx",
  "thiserror",
  "tokio",
  "tower-sessions",

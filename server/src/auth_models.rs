@@ -1,7 +1,6 @@
 use axum_login::AuthUser;
-use sqlx::FromRow;
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone)]
 pub struct User {
     pub id: i64,
     pub username: String,

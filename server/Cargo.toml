@@ -37,7 +37,6 @@ sea-orm = { version = "1.0.0", features = [
     "debug-print",
 ] }
 serde = { version = "1.0.197", features = ["derive"] }
-sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio"] }
 thiserror = "1.0.58"
 tokio = { version = "1.37.0", features = ["full"] }
 tower-sessions = "0.12.1"

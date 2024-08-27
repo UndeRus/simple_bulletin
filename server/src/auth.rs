@@ -4,20 +4,18 @@ use async_trait::async_trait;
 use axum_login::{AuthnBackend, AuthzBackend, UserId};
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
-use sqlx::{FromRow, Pool, Sqlite};
 use tokio::sync::RwLock;
 
 use crate::{auth_models::User, db_orm};
 
 #[derive(Clone)]
 pub struct AuthBackend {
-    pub db: Arc<RwLock<Pool<Sqlite>>>,
     pub db1: Arc<RwLock<DatabaseConnection>>,
 }
 
 impl AuthBackend {
-    pub fn new(db: Arc<RwLock<Pool<Sqlite>>>, db1: Arc<RwLock<DatabaseConnection>>) -> Self {
-        Self { db, db1 }
+    pub fn new(db1: Arc<RwLock<DatabaseConnection>>) -> Self {
+        Self { db1 }
     }
 }
 
@@ -28,7 +26,7 @@ pub struct Credentials {
     pub next: Option<String>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, FromRow)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct AuthPermission {
     pub name: String,
 }

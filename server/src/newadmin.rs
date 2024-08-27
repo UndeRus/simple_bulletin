@@ -1,8 +1,9 @@
 use clap::Parser;
-use password_auth::generate_hash;
 
+mod auth;
 mod auth_models;
 mod db;
+mod db_orm;
 mod models;
 
 #[derive(Parser)]
@@ -24,28 +25,10 @@ async fn main() {
 }
 
 async fn create_new_admin(username: &str, password: &str) {
-    let db = db::create_db("simple_bulletin.db")
+    let db = db_orm::get_db("simple_bulletin.db")
         .await
-        .expect("Failed to create db");
-
-    sqlx::query("INSERT INTO users(username, password_hash, active) VALUES(?, ?, ?)")
-        .bind(username)
-        .bind(generate_hash(password))
-        .bind(true)
-        .execute(&db)
+        .expect("Failed to created db");
+    db_orm::create_new_admin(&db, username, password)
         .await
-        .unwrap();
-    sqlx::query(
-        r#"INSERT INTO
-                 users_groups(user_id, group_id)
-                 VALUES(
-                    (SELECT id FROM users WHERE username = ?),
-                    (SELECT id FROM groups WHERE name = ?)
-                )"#,
-    )
-    .bind(username)
-    .bind("admins")
-    .execute(&db)
-    .await
-    .unwrap();
+        .expect("Failed to create admin");
 }

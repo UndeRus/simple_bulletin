@@ -1,3 +1,4 @@
+/*
 use crate::{auth_models::User, models::Advert};
 use password_auth::generate_hash;
 use sqlx::{
@@ -5,6 +6,7 @@ use sqlx::{
     sqlite::SqliteConnectOptions,
     Pool, Sqlite, SqlitePool,
 };
+
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
@@ -108,7 +110,7 @@ pub async fn get_advert_by_id(
             .bind(id)
             .bind(user_id)
     } else {
-        sqlx::query_as("SELECT * FROM adverts WHERE id = ? AND published = true").bind(id) 
+        sqlx::query_as("SELECT * FROM adverts WHERE id = ? AND published = true").bind(id)
     }
            .fetch_optional(db)
 .await
@@ -263,3 +265,4 @@ pub async fn get_user_adverts(
     .map_err(|_| ())?;
     Ok((result, total_count))
 }
+*/

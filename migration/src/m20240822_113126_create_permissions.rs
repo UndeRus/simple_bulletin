@@ -143,7 +143,6 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
-
         let admin_read_perm_id = get_id_by_table_and_name(
             db,
             Permissions::Table,
@@ -162,15 +161,18 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
-        manager.exec_stmt(
-            Query::insert()
-            .into_table(GroupsPermissions::Table)
-            .columns([GroupsPermissions::GroupId, GroupsPermissions::PermissionId])
-            .values_panic([users_group_id.into(), user_read_perm_id.into()])
-            .values_panic([users_group_id.into(), user_write_perm_id.into()])
-            .values_panic([admins_group_id.into(), admin_read_perm_id.into()])
-            .values_panic([admins_group_id.into(), admin_write_perm_id.into()])
-            .to_owned()).await?;
+        manager
+            .exec_stmt(
+                Query::insert()
+                    .into_table(GroupsPermissions::Table)
+                    .columns([GroupsPermissions::GroupId, GroupsPermissions::PermissionId])
+                    .values_panic([users_group_id.into(), user_read_perm_id.into()])
+                    .values_panic([users_group_id.into(), user_write_perm_id.into()])
+                    .values_panic([admins_group_id.into(), admin_read_perm_id.into()])
+                    .values_panic([admins_group_id.into(), admin_write_perm_id.into()])
+                    .to_owned(),
+            )
+            .await?;
         /*
         let users_group_id_q = Query::select()
             .column(Groups::Id)

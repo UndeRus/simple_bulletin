@@ -9,7 +9,10 @@ use axum_login::{AuthSession, AuthzBackend};
 use serde::Deserialize;
 
 use crate::{
-    auth::{AuthBackend, AuthPermission}, db, db_orm, models::Advert, AppState
+    auth::{AuthBackend, AuthPermission},
+    db_orm,
+    models::Advert,
+    AppState,
 };
 
 #[derive(Template)]
@@ -43,7 +46,7 @@ pub async fn item_page_edit(
         return "No user found".into_response();
     };
 
-    let db = state.db1.write().await;
+    let db = state.db.write().await;
 
     if let Ok(is_own_advert) = db_orm::check_advert_belong_to_user(&db, user_id, advert_id).await {
         if is_own_advert {
@@ -92,7 +95,7 @@ pub async fn item_page(
     } else {
         false
     };
-    let db = state.db1.read().await;
+    let db = state.db.read().await;
     let (advert, own_advert) =
         if let Ok(advert) = db_orm::get_advert_by_id(&db, user_id, item_id, is_admin).await {
             advert
@@ -133,13 +136,14 @@ pub async fn item_new(
         return "Error".into_response();
     }
     //let db = state.db.write().await;
-    let db1 = state.db1.write().await;
-    let new_advert_id =
-        if let Ok(id) = db_orm::create_new_advert(&db1, user.id, &form.title, &form.content).await {
-            id
-        } else {
-            return "Failed to create advert".into_response();
-        };
+    let db1 = state.db.write().await;
+    let new_advert_id = if let Ok(id) =
+        db_orm::create_new_advert(&db1, user.id, &form.title, &form.content).await
+    {
+        id
+    } else {
+        return "Failed to create advert".into_response();
+    };
 
     Redirect::to(&format!("/item/{}", new_advert_id)).into_response()
 }

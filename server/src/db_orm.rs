@@ -10,8 +10,8 @@ use password_auth::{generate_hash, verify_password};
 use sea_orm::{ActiveModelTrait, QuerySelect, TransactionTrait};
 use sea_orm::{ColumnTrait, ModelTrait, Set};
 use sea_orm::{
-    ConnectOptions, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, RelationTrait,
+    ConnectOptions, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    RelationTrait,
 };
 use tokio::task;
 
@@ -19,7 +19,7 @@ use crate::auth::AuthPermission;
 use crate::auth_models::User;
 use crate::models::Advert;
 
-pub async fn get_db(uri: &str) -> DatabaseConnection {
+pub async fn get_db(uri: &str) -> Result<DatabaseConnection, ()> {
     let mut opt = ConnectOptions::new(uri);
     opt.max_connections(100)
         .min_connections(5)
@@ -31,7 +31,10 @@ pub async fn get_db(uri: &str) -> DatabaseConnection {
         .sqlx_logging_level(log::LevelFilter::Info)
         .set_schema_search_path("schema"); // Setting default PostgreSQL schema
 
-    let db = Database::connect(opt).await.expect("Failed to connect");
+    let db = Database::connect(opt).await.map_err(|e| {
+        println!("Failed to create database {}", e);
+        ()
+    });
     return db;
 }
 
@@ -354,4 +357,36 @@ pub async fn get_active_user_permissions(
         .map(|m| AuthPermission::from(m.name.as_ref()))
         .collect();
     Ok(permissions)
+}
+
+pub async fn create_new_admin(
+    db: &DatabaseConnection,
+    username: &str,
+    password: &str,
+) -> Result<(), ()> {
+    let txn = db.begin().await.map_err(|_| ())?;
+    let new_user = users::ActiveModel {
+        username: Set(username.to_owned()),
+        password_hash: Set(generate_hash(password)),
+        active: Set(false),
+        ..Default::default()
+    };
+
+    let new_user_model = new_user.insert(&txn).await.map_err(|_| ())?;
+
+    let admin_group = prelude::Groups::find()
+        .filter(groups::Column::Name.eq("admins"))
+        .one(db)
+        .await
+        .map_err(|_| ())?
+        .ok_or(())?;
+
+    let new_user_id = new_user_model.id.clone();
+    let new_user_group = users_groups::ActiveModel {
+        user_id: Set(new_user_id),
+        group_id: Set(admin_group.id),
+    };
+    new_user_group.insert(&txn).await.map_err(|_| ())?;
+    txn.commit().await.map_err(|_| ())?;
+    Ok(())
 }

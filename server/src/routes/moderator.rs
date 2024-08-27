@@ -56,7 +56,7 @@ pub async fn mod_page(
     let adverts_per_page = ADVERTS_LIMIT;
     let users_per_page = USERS_LIMIT;
 
-    let db = state.db1.read().await;
+    let db = state.db.read().await;
 
     let ((adverts, total_advert_pages), (users, total_user_pages)) = if let Ok((adverts, users)) =
         db_orm::get_mod_page(
@@ -113,7 +113,7 @@ pub async fn mod_edit(
     if token.verify(&form.csrf_token).is_err() {
         return "Failed to verify csrf".into_response();
     }
-    let db = state.db1.write().await;
+    let db = state.db.write().await;
 
     let result = match form.action.as_str() {
         ACTIVATE_USER_ACTION => db_orm::toggle_user_active(&db, form.id, true).await,

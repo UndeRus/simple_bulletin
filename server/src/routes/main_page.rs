@@ -33,7 +33,7 @@ pub async fn main_board(
 ) -> impl IntoResponse {
     let page = params.page.unwrap_or(1);
     let per_page = MAIN_PAGE_LIMIT;
-    let db = state.db1.read().await;
+    let db = state.db.read().await;
     let (adverts, total_pages) =
         if let Ok(adverts) = db_orm::get_main_page(&db, per_page, page - 1).await {
             adverts

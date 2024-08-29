@@ -13,24 +13,26 @@ use sea_orm::{
     ConnectOptions, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     RelationTrait,
 };
-use tokio::task;
 use sea_orm_migration::prelude::*;
+use tokio::task;
 
 use crate::auth::AuthPermission;
 use crate::auth_models::User;
 use crate::models::Advert;
 
-pub async fn get_db(uri: &str) -> Result<DatabaseConnection, ()> {
+pub async fn get_db(uri: &str, debug: bool) -> Result<DatabaseConnection, ()> {
     let mut opt = ConnectOptions::new(uri);
-    opt.max_connections(100)
-        .min_connections(5)
+    opt.max_connections(1)
+        .min_connections(1)
         .connect_timeout(Duration::from_secs(8))
         .acquire_timeout(Duration::from_secs(8))
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Info)
         .set_schema_search_path("schema"); // Setting default PostgreSQL schema
+    if debug {
+        opt.sqlx_logging(true)
+            .sqlx_logging_level(log::LevelFilter::Info);
+    }
 
     let db = Database::connect(opt).await.map_err(|e| {
         println!("Failed to create database {}", e);
@@ -73,18 +75,19 @@ pub async fn get_advert_by_id(
         .map_err(|_| ());
     if let Ok(Some(advert)) = advert {
         let advert_user = advert.find_related(prelude::Users).one(db).await;
-        if let Ok(Some(advert_user)) = advert_user {
-            if let Some(user_id) = user_id {
-                if advert_user.id == user_id as i32 {
-                    return Ok((map_advert(&advert), true));
-                }
-            } else {
-                if advert.published {
-                    return Ok((map_advert(&advert), false));
-                }
+
+        let is_own = advert_user.map_err(|_|())?.map(|au| {
+            user_id.map(|ui|ui as i32 == au.id).unwrap_or(false)
+        }).ok_or(())?;
+
+        if is_admin {
+            return Ok((map_advert(&advert), is_own));
+        } else if advert.published {
+            return Ok((map_advert(&advert), is_own));
+        } else {
+            if is_own {
+                return Ok((map_advert(&advert), is_own));
             }
-        } else if is_admin {
-            return Ok((map_advert(&advert), true));
         }
     }
     return Err(());

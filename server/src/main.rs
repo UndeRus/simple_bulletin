@@ -23,8 +23,7 @@ mod routes;
 
 #[tokio::main]
 async fn main() {
-    //env_logger::init();
-    tracing_subscriber::fmt().init();
+    env_logger::init();
 
     let app = router();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -43,7 +42,7 @@ async fn router() -> Router {
 
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store);
-    let db = get_db("sqlite://simple_bulletin.db?mode=rwc")
+    let db = get_db("sqlite://simple_bulletin.db?mode=rwc", true)
         .await
         .expect("Failed to connect db");
     let db = Arc::new(RwLock::new(db));

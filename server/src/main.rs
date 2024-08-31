@@ -16,7 +16,6 @@ use crate::auth::AuthBackend;
 
 mod auth;
 mod auth_models;
-mod db;
 mod db_orm;
 mod models;
 mod routes;

@@ -2,7 +2,6 @@ use clap::Parser;
 
 mod auth;
 mod auth_models;
-mod db;
 mod db_orm;
 mod models;
 

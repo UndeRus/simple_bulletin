@@ -8,12 +8,14 @@
         <th>#</th>
         <th>Title</th>
         <th>Description</th>
+        <th>Published</th>
     </tr>
     {% for advert in adverts %}
     <tr>
         <td><a href="/item/{{advert.id}}">#</a></td>
         <td>{{advert.title}}</td>
-        <td>{{advert.content|truncate(50)}}</td>
+        <td>{{advert.content|truncate(200)}}</td>
+        <td>{{advert.published}}</td>
     </tr>
     {% endfor %}
 </table>

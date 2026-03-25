@@ -59,12 +59,14 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Adverts {
+pub enum Adverts {
     Table,
     Id,
     Title,
     Content,
     Published,
+    PublishedTime,
+    UpdatedTime,
 }
 
 #[derive(DeriveIden)]

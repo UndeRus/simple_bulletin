@@ -22,7 +22,7 @@ use crate::models::Advert;
 
 pub async fn get_db(uri: &str, debug: bool) -> Result<DatabaseConnection, ()> {
     let mut opt = ConnectOptions::new(uri);
-    opt.max_connections(1)
+    opt.max_connections(4)
         .min_connections(1)
         .connect_timeout(Duration::from_secs(8))
         .acquire_timeout(Duration::from_secs(8))
@@ -76,9 +76,10 @@ pub async fn get_advert_by_id(
     if let Ok(Some(advert)) = advert {
         let advert_user = advert.find_related(prelude::Users).one(db).await;
 
-        let is_own = advert_user.map_err(|_|())?.map(|au| {
-            user_id.map(|ui|ui as i32 == au.id).unwrap_or(false)
-        }).ok_or(())?;
+        let is_own = advert_user
+            .map_err(|_| ())?
+            .map(|au| user_id.map(|ui| ui as i32 == au.id).unwrap_or(false))
+            .ok_or(())?;
 
         if is_admin {
             return Ok((map_advert(&advert), is_own));
@@ -371,7 +372,10 @@ pub async fn create_new_admin(
     username: &str,
     password: &str,
 ) -> Result<(), ()> {
-    let txn = db.begin().await.map_err(|_| ())?;
+    let txn = db.begin().await.map_err(|e| {
+        println!("Failed to start transaction: {}", e);
+        ()
+    })?;
     let new_user = users::ActiveModel {
         username: Set(username.to_owned()),
         password_hash: Set(generate_hash(password)),
@@ -379,13 +383,19 @@ pub async fn create_new_admin(
         ..Default::default()
     };
 
-    let new_user_model = new_user.insert(&txn).await.map_err(|_| ())?;
+    let new_user_model = new_user.insert(&txn).await.map_err(|e| {
+        println!("Failed to create new user: {}", e);
+        ()
+    })?;
 
     let admin_group = prelude::Groups::find()
         .filter(groups::Column::Name.eq("admins"))
         .one(db)
         .await
-        .map_err(|_| ())?
+        .map_err(|e| {
+            println!("Failed to find admin group: {}", e);
+            ()
+        })?
         .ok_or(())?;
 
     let new_user_id = new_user_model.id.clone();
@@ -393,7 +403,10 @@ pub async fn create_new_admin(
         user_id: Set(new_user_id),
         group_id: Set(admin_group.id),
     };
-    new_user_group.insert(&txn).await.map_err(|_| ())?;
+    new_user_group.insert(&txn).await.map_err(|e| {
+        println!("Failed to assign admins group: {}", e);
+        ()
+    })?;
     txn.commit().await.map_err(|_| ())?;
     Ok(())
 }

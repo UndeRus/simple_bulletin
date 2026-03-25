@@ -3,7 +3,7 @@
 
 {% block body %}
 <h1>{{advert.title}}</h1>
-<p>{{advert.content}}</p>
+<pre>{{advert.content}}</pre>
 {% if advert.published && own_advert %}
 <form method="POST">
     <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
